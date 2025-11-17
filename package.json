@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "Blue-orbit-Backend",
   "private": true,
   "scripts": {
     "build": "turbo run build",
