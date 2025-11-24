@@ -13,12 +13,13 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
 model SatelliteData {
-  id          String   @id @default(cuid())
-  noradId     String   @unique
-  name        String
-  line1       String
-  line2       String
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  noradId   String   @unique
+  name      String
+  line1     String
+  line2     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }

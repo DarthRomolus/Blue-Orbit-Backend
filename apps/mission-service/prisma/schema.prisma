@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/mission_client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model MissionData{
+  id   String   @id @default(cuid())
+  name String @unique
+
+  Type  MissionType 
+
+  startLat    Float
+  startLon    Float
+
+  endLat      Float?
+  endLon      Float?
+
+ 
+  startDate   DateTime
+  endDate     DateTime
+
+  radius Float?
+
+  status      MissionStatus @default(DRAFT)
+
+  result      Json?
+
+ 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+enum MissionType {
+  STATIC
+  FLIGHT
+}
+enum MissionStatus {
+  DRAFT     
+  PENDING   
+  COMPLETED 
+  FAILED   
+}
+
