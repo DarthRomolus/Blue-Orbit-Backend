@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { SatelliteModule } from './satellite/satellite.module';
+import { OrbitalModule } from './orbital/orbital.module';
+import { CelestrackModule } from './celestrack/celestrack.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [SatelliteModule],
+  imports: [OrbitalModule, CelestrackModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
