@@ -7,6 +7,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Module({
   imports: [CelestrackModule],
   controllers: [OrbitalController],
-  providers: [OrbitalController, PrismaService],
+  providers: [OrbitalService, PrismaService],
 })
 export class OrbitalModule {}

@@ -3,6 +3,7 @@ import { PrismaClient } from '@generated/orbital-client';
 import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import 'dotenv/config';
 
 @Injectable()
 export class PrismaService

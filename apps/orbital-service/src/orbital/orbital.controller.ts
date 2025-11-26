@@ -1,14 +1,15 @@
 import { Controller } from '@nestjs/common';
-import { CelestrackService } from 'src/celestrack/celestrack.service';
+import { OrbitalService } from './orbital.service';
 import { Get } from '@nestjs/common';
 import { Request } from 'express';
+import { SatelliteData } from '@generated/orbital-client';
 
 @Controller('satellites')
 export class OrbitalController {
-  constructor(private readonly celestrackService: CelestrackService) {}
+  constructor(private readonly orbitalService: OrbitalService) {}
 
   @Get()
-  async getTLE(): Promise<string> {
-    return await this.celestrackService.getTleData();
+  async getTLE(): Promise<SatelliteData[]> {
+    return await this.orbitalService.processTleData();
   }
 }
