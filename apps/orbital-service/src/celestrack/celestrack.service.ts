@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import axios, { Axios } from 'axios';
+import axios from 'axios';
 
 @Injectable()
 export class CelestrackService {
@@ -9,7 +9,6 @@ export class CelestrackService {
     const url = `${this.BASE_URL}?GROUP=${group}&FORMAT=tle`;
     try {
       const response = await axios.get(url);
-      console.log(response.data);
       return response.data;
     } catch (error) {
       if ((error = axios.AxiosError)) {

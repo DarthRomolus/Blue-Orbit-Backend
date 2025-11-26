@@ -7,7 +7,7 @@
 generator client {
   provider = "prisma-client-js"
   // שומר את הקוד בתיקייה ייעודית לשירות הזה
-  output   = "../generated/orbital-client"
+  output   = "../../../node_modules/@generated/orbital-client"
 }
 
 datasource db {

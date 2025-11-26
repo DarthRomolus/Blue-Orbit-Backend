@@ -1,8 +1,9 @@
 import { Controller } from '@nestjs/common';
 import { CelestrackService } from 'src/celestrack/celestrack.service';
 import { Get } from '@nestjs/common';
+import { Request } from 'express';
 
-@Controller('satellite')
+@Controller('satellites')
 export class OrbitalController {
   constructor(private readonly celestrackService: CelestrackService) {}
 
