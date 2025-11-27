@@ -1,14 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import * as satellite from 'satellite.js';
+import type { positionGdDto } from './DTO/positionGd.dto';
 
 @Injectable()
 export class PositionService {
-  calculate(tleLine1: string, tleLine2: string, date: Date = new Date()) {
+  calculate(
+    tleLine1: string,
+    tleLine2: string,
+    date: Date = new Date(),
+  ): positionGdDto | null {
     try {
       const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
       const positionAndVelocity = satellite.propagate(satrec, date);
 
-      if (positionAndVelocity) {
+      if (
+        positionAndVelocity?.position &&
+        typeof positionAndVelocity.position === 'object'
+      ) {
         const positionEci =
           positionAndVelocity.position as satellite.EciVec3<number>;
         const gmst = satellite.gstime(date);
@@ -27,6 +35,7 @@ export class PositionService {
 
         return position;
       }
+      return null;
     } catch (error) {
       return null;
     }
