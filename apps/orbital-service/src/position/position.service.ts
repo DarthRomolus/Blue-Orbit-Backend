@@ -1,15 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import * as satellite from 'satellite.js';
 import type { positionGdDto } from './DTO/positionGd.dto';
+import { OrbitalService } from 'src/orbital/orbital.service';
+import { SatelliteData } from '@generated/orbital-client';
+import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class PositionService {
-  calculate(
-    tleLine1: string,
-    tleLine2: string,
+  constructor(private readonly databaseService: DatabaseService) {}
+  async calculatePosition(
+    noradId: string,
     date: Date = new Date(),
-  ): positionGdDto | null {
+  ): Promise<positionGdDto | null> {
     try {
+      const satelliteTle: SatelliteData | null =
+        await this.databaseService.getSatelliteById(noradId);
+      if (!satelliteTle) {
+        return null;
+      }
+      const tleLine1: string = satelliteTle.line1;
+      const tleLine2: string = satelliteTle.line2;
       const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
       const positionAndVelocity = satellite.propagate(satrec, date);
 
