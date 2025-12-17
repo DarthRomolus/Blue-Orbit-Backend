@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
 import { OrbitalService } from './orbital.service';
 import { Get } from '@nestjs/common';
 import { SatelliteData } from '@generated/orbital-client';
@@ -7,7 +7,7 @@ import { SatelliteData } from '@generated/orbital-client';
 export class OrbitalController {
   constructor(private readonly orbitalService: OrbitalService) {}
 
-  @Get('process')
+  @Post('process')
   async getTLE(): Promise<SatelliteData[]> {
     //dev endpoint
     return await this.orbitalService.processTleData();
