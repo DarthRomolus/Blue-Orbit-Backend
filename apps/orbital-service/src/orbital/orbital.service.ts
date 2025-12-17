@@ -30,4 +30,8 @@ export class OrbitalService {
 
     return await this.databaseService.getAllSatellites();
   }
+
+  async allSatellitesData(): Promise<SatelliteData[] | null> {
+    return await this.databaseService.getAllSatellites();
+  }
 }
