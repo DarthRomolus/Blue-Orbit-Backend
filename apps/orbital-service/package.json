@@ -35,5 +35,10 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/luxon": "^3.7.1",
+    "@types/node": "^25.0.3"
   }
 }
