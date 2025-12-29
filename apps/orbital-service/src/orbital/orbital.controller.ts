@@ -13,6 +13,7 @@ export class OrbitalController {
     await this.orbitalService.processTleData(CELESTRACK_GROUPS.GLOBALSTAR);
     await this.orbitalService.processTleData(CELESTRACK_GROUPS.IRIDIUM);
     await this.orbitalService.processTleData(CELESTRACK_GROUPS.ONEWEB);
+    await this.orbitalService.processTleData(CELESTRACK_GROUPS.QIANFAN);
     return await this.orbitalService.processTleData(CELESTRACK_GROUPS.ORBCOMM);
   }
   @Get()
