@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { CelestrackService } from 'src/celestrack/celestrack.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
-
 @Injectable()
 export class OrbitalService {
   constructor(
@@ -10,8 +9,8 @@ export class OrbitalService {
     private readonly celestrackService: CelestrackService,
   ) {}
 
-  async processTleData(): Promise<SatelliteData[]> {
-    const rawData = await this.celestrackService.getTleData('active');
+  async processTleData(group: string): Promise<SatelliteData[]> {
+    const rawData = await this.celestrackService.getTleData(group);
     const lines = rawData.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
       const currentLine = lines[i].trim();
