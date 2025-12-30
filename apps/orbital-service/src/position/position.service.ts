@@ -5,18 +5,21 @@ import { OrbitalService } from 'src/orbital/orbital.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
 
+import { MEASUREMENTS_DEFAULTS } from 'src/common/constants/measurements.constants';
+
 @Injectable()
 export class PositionService {
   constructor(private readonly databaseService: DatabaseService) {}
-  async calculatePosition(
+
+  async calculateSatellitePosition(
     noradId: string,
     date: Date = new Date(),
-  ): Promise<positionGdDto | null> {
+  ): Promise<positionGdDto | undefined> {
     try {
       const satelliteTle: SatelliteData | null =
         await this.databaseService.getSatelliteById(noradId);
       if (!satelliteTle) {
-        return null;
+        return undefined;
       }
       const tleLine1: string = satelliteTle.line1;
       const tleLine2: string = satelliteTle.line2;
