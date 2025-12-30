@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as satellite from 'satellite.js';
-import type { positionGdDto } from './DTO/positionGd.dto';
+import type { PositionGeodatic } from './DTO/positionGeodetic.dto';
 import { OrbitalService } from 'src/orbital/orbital.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
