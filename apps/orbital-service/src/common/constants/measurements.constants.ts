@@ -1,0 +1,3 @@
+export const MEASUREMENTS_DEFAULTS = {
+  KILOMETERS_TO_METERS: 1000,
+} as const;
