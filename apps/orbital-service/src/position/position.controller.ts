@@ -6,6 +6,6 @@ export class PositionController {
   constructor(private readonly positionService: PositionService) {}
   @Get(':id')
   calculatePosition(@Param('id') noradId: string) {
-    return this.positionService.calculatePosition(noradId);
+    return this.positionService.calculateSatellitePosition(noradId);
   }
 }
