@@ -27,30 +27,23 @@ export class PositionService {
       const positionAndVelocity = satellite.propagate(satrec, date);
 
       if (
-        positionAndVelocity?.position &&
-        typeof positionAndVelocity.position === 'object'
+        !positionAndVelocity?.position ||
+        typeof positionAndVelocity.position !== 'object'
       ) {
-        const positionEci =
-          positionAndVelocity.position as satellite.EciVec3<number>;
-        const gmst = satellite.gstime(date);
-        const positionGd = satellite.eciToGeodetic(positionEci, gmst);
-        /*const velocity = {
-          x: positionAndVelocity.velocity.x,
-          y: positionAndVelocity.velocity.y,
-          z: positionAndVelocity.velocity.z,
-        };*/
-
-        const position = {
-          longitude: satellite.degreesLong(positionGd.longitude),
-          latitude: satellite.degreesLat(positionGd.latitude),
-          height: positionGd.height * 1000,
-        };
-
-        return position;
+        return undefined;
       }
-      return null;
+      const positionEci: satellite.EciVec3<number> =
+        positionAndVelocity.position;
+      const gmst = satellite.gstime(date);
+      const positionGd = satellite.eciToGeodetic(positionEci, gmst);
+
+      return {
+        longitude: satellite.degreesLong(positionGd.longitude),
+        latitude: satellite.degreesLat(positionGd.latitude),
+        height: positionGd.height * MEASUREMENTS_DEFAULTS.KILOMETERS_TO_METERS,
+      };
     } catch (error) {
-      return null;
+      return undefined;
     }
   }
 }
