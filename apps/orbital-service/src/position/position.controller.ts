@@ -6,6 +6,13 @@ export class PositionController {
   constructor(private readonly positionService: PositionService) {}
   @Get(':id')
   calculatePosition(@Param('id') noradId: string) {
-    return this.positionService.calculateSatellitePosition(noradId);
+    return this.positionService.calculateSatellitePositionById(
+      noradId,
+      new Date(),
+    );
+  }
+  @Get('path/:id')
+  async calculateSatellitePath(@Param('id') noradId: string) {
+    return await this.positionService.calculateSatellitePath(noradId);
   }
 }

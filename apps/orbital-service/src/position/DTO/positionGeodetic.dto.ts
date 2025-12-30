@@ -1,4 +1,4 @@
-export type positionGdDto = {
+export type PositionGeodatic = {
   longitude: number;
   latitude: number;
   height: number;
