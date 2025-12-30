@@ -46,4 +46,56 @@ export class PositionService {
       return undefined;
     }
   }
+
+  calculateSatellitePositionByData(
+    satelliteData: SatelliteData,
+    date: Date,
+  ): PositionGeodatic | undefined {
+    const tleLine1: string = satelliteData.line1;
+    const tleLine2: string = satelliteData.line2;
+    const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
+    const positionAndVelocity = satellite.propagate(satrec, date);
+
+    if (
+      !positionAndVelocity?.position ||
+      typeof positionAndVelocity.position !== 'object'
+    ) {
+      return undefined;
+    }
+    const positionEci: satellite.EciVec3<number> = positionAndVelocity.position;
+    const gmst = satellite.gstime(date);
+    const positionGd = satellite.eciToGeodetic(positionEci, gmst);
+
+    return {
+      longitude: satellite.degreesLong(positionGd.longitude),
+      latitude: satellite.degreesLat(positionGd.latitude),
+      height: positionGd.height * MEASUREMENTS_DEFAULTS.KILOMETERS_TO_METERS,
+    };
+  }
+
+  async calculateSatellitePath(
+    noradId: string,
+  ): Promise<PositionGeodatic[] | undefined> {
+    const currentDate = new Date();
+    const endDate = new Date(currentDate.getTime() + 90 * 60 * 1000);
+
+    const satelliteData: SatelliteData | null =
+      await this.databaseService.getSatelliteById(noradId);
+    if (!satelliteData) {
+      return undefined;
+    }
+    let pathPoints: PositionGeodatic[] = [];
+    while (currentDate <= endDate) {
+      const position = this.calculateSatellitePositionByData(
+        satelliteData,
+        currentDate,
+      );
+      if (position) {
+        pathPoints.push(position);
+      }
+
+      currentDate.setMinutes(currentDate.getMinutes() + 1);
+    }
+    return pathPoints;
+  }
 }
