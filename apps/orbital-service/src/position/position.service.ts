@@ -11,13 +11,13 @@ import { MEASUREMENTS_DEFAULTS } from 'src/common/constants/measurements.constan
 export class PositionService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async calculateSatellitePosition(
-    noradId: string,
-    date: Date = new Date(),
-  ): Promise<positionGdDto | undefined> {
+  async calculateSatellitePositionById(
+    noradID: string,
+    date: Date,
+  ): Promise<PositionGeodatic | undefined> {
     try {
       const satelliteTle: SatelliteData | null =
-        await this.databaseService.getSatelliteById(noradId);
+        await this.databaseService.getSatelliteById(noradID);
       if (!satelliteTle) {
         return undefined;
       }
