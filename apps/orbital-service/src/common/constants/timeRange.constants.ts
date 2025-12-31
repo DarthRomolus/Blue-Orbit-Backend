@@ -1,0 +1,5 @@
+export const TIME_RANGE = {
+  MINUTES: 105,
+  SECONDS_MULTIPLYER: 60,
+  MILLISECONDS_MULTIPLYER: 1000,
+} as const;
