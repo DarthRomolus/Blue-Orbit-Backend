@@ -4,6 +4,7 @@ import type { PositionGeodatic } from '../common/types/positionGeodetic.dto';
 import { OrbitalService } from 'src/orbital/orbital.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
+import { TIME_RANGE } from 'src/common/constants/timeRange.constants';
 
 import { MEASUREMENTS_DEFAULTS } from 'src/common/constants/measurements.constants';
 
@@ -77,7 +78,12 @@ export class PositionService {
     noradId: string,
   ): Promise<PositionGeodatic[] | undefined> {
     const currentDate = new Date();
-    const endDate = new Date(currentDate.getTime() + 90 * 60 * 1000);
+    const endDate = new Date(
+      currentDate.getTime() +
+        TIME_RANGE.MINUTES *
+          TIME_RANGE.SECONDS_MULTIPLYER *
+          TIME_RANGE.MILLISECONDS_MULTIPLYER,
+    );
 
     const satelliteData: SatelliteData | null =
       await this.databaseService.getSatelliteById(noradId);
