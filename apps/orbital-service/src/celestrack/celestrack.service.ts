@@ -12,9 +12,9 @@ export class CelestrackService {
       return response.data;
     } catch (error) {
       if ((error = axios.AxiosError)) {
-        console.log('axios error:', error);
+        console.error('axios error:', error);
       } else {
-        console.log('different error', error);
+        console.error('different error', error);
       }
       return error;
     }
