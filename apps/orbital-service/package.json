@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "doc": "compodoc -p tsconfig.json -s"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -37,6 +38,7 @@
     "testEnvironment": "node"
   },
   "devDependencies": {
+    "@compodoc/compodoc": "^1.1.32",
     "@types/express": "^5.0.6",
     "@types/luxon": "^3.7.1",
     "@types/node": "^25.0.3"
