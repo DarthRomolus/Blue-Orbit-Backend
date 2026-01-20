@@ -15,6 +15,24 @@ export class VisibilityService {
     const covrageRadiusKm = angleForRadiusInRadians * earthRadius;
     return covrageRadiusKm;
   }
+  calculateEffectiveRadius(
+    satelliteAltitudeKm: number = 1200,
+    minElevationAngle: number = 25,
+  ): number {
+    // DEV
+    const heightKm = satelliteAltitudeKm;
+    const minElevationRad =
+      minElevationAngle * ANGLES_DEFAULTS.DEGGREES_TO_RADIANS; //change to radians
+
+    const earthRadius = VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
+
+    const cosAngleForRadius =
+      (earthRadius / (earthRadius + heightKm)) * Math.cos(minElevationRad);
+    const angleForRadiusInRadians =
+      Math.acos(cosAngleForRadius) - minElevationRad;
+    const covrageRadiusKm = angleForRadiusInRadians * earthRadius;
+    return covrageRadiusKm;
+  }
   calculateSatellitePosition(
     tle: { line1: string; line2: string },
     date = new Date(),
