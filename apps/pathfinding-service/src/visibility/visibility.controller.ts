@@ -5,15 +5,16 @@ import { VisibilityService } from './visibility.service';
 export class VisibilityController {
   constructor(private readonly visibilityService: VisibilityService) {}
 
-  @Get('') //DEV
+  @Get('/:id') //DEV
   getMaxSatelliteFootPrint() {
-    const radius = this.visibilityService.calculateMaxFootprintRadius();
+    const maxRadius = this.visibilityService.calculateMaxRadius();
+    const effectiveRadius = this.visibilityService.calculateEffectiveRadius();
     const pos = this.visibilityService.calculateSatellitePosition({
       line1:
-        '1 60391U 24140N   25363.45596712  .00000160  00000+0  22913-3 0  9994',
+        '1 48787U 21045W   26019.76421818 -.00000067  00000+0 -21080-3 0  9999',
       line2:
-        '2 60391  88.9770 297.6848 0013201 151.8526 208.3342 13.50983204 69528',
+        '2 48787  87.9013 288.8028 0001549  51.0254 309.1015 13.15549748224808',
     });
-    return { pos, radius };
+    return { pos, effectiveRadius };
   }
 }
