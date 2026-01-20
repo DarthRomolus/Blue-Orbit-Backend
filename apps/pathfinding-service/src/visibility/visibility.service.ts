@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { VISIBILITY_EQUATION_VARIABLES } from 'src/common/constants/equation.constants';
 import * as satellite from 'satellite.js';
+import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 
 @Injectable()
 export class VisibilityService {
-  calculateMaxFootprintRadius(satelliteAltitudeKm?: number): number {
+  calculateMaxRadius(satelliteAltitudeKm?: number): number {
     // DEV
     const heightKm = 550;
     const earthRadius = VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
