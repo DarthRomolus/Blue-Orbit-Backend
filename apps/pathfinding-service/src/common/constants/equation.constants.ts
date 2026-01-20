@@ -1,0 +1,3 @@
+export const VISIBILITY_EQUATION_VARIABLES = {
+  EARTH_RADIUS_KM: 6371,
+} as const;
