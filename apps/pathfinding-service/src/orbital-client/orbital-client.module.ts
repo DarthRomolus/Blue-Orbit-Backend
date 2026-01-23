@@ -1,0 +1,25 @@
+import { Module } from '@nestjs/common';
+import { OrbitalClientService } from './orbital-client.service';
+import { Client, ClientsModule, Transport } from '@nestjs/microservices';
+import { VisibilityModule } from 'src/visibility/visibility.module';
+
+@Module({
+  imports: [
+    ClientsModule.register([
+      {
+        name: 'ORBITAL_CLIENT',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://localhost:5672'],
+          queue: 'orbital_queue',
+          queueOptions: {
+            durable: false,
+          },
+        },
+      },
+    ]),
+  ],
+  providers: [OrbitalClientService],
+  exports: [OrbitalClientService],
+})
+export class OrbitalClientModule {}

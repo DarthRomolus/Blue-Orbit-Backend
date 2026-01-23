@@ -7,7 +7,6 @@ export class VisibilityController {
 
   @Get('/:id') //DEV
   getMaxSatelliteFootPrint() {
-    const maxRadius = this.visibilityService.calculateMaxRadius();
     const effectiveRadius = this.visibilityService.calculateEffectiveRadius();
     const pos = this.visibilityService.calculateSatellitePosition({
       line1:

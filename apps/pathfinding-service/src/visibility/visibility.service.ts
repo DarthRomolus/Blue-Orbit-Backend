@@ -5,16 +5,7 @@ import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 
 @Injectable()
 export class VisibilityService {
-  calculateMaxRadius(satelliteAltitudeKm?: number): number {
-    // DEV
-    const heightKm = 550;
-    const earthRadius = VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
 
-    const cosAngleForRadius = earthRadius / (earthRadius + heightKm);
-    const angleForRadiusInRadians = Math.acos(cosAngleForRadius);
-    const covrageRadiusKm = angleForRadiusInRadians * earthRadius;
-    return covrageRadiusKm;
-  }
   calculateEffectiveRadius(
     satelliteAltitudeKm: number = 1200,
     minElevationAngle: number = 25,

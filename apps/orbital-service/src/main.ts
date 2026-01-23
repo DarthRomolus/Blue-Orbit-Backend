@@ -8,8 +8,8 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://localhost:5672'], // הכתובת של הראביט בדוקר
-      queue: 'orbital_queue', // השם של התור (חשוב!)
+      urls: ['amqp://localhost:5672'],
+      queue: 'orbital_queue',
       queueOptions: {
         durable: false,
       },
