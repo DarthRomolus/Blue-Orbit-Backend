@@ -30,28 +30,15 @@ export class VisibilityService {
     const covrageRadiusKm = angleForRadiusInRadians * earthRadius;
     return covrageRadiusKm;
   }
-  calculateSatellitePosition(
-    tle: { line1: string; line2: string },
-    date = new Date(),
-  ) {
-    const satrec = satellite.twoline2satrec(tle.line1, tle.line2);
-    const positionAndVelocity = satellite.propagate(satrec, date);
-
-    if (
-      !positionAndVelocity?.position ||
-      typeof positionAndVelocity.position !== 'object'
-    ) {
-      return undefined;
-    }
-
-    const positionEci: satellite.EciVec3<number> = positionAndVelocity.position;
-    const gmst = satellite.gstime(date);
-    const positionGd = satellite.eciToGeodetic(positionEci, gmst);
-
+  async calculateSatellitePosition(
+    noradID: string,
+  ): Promise<SatellitePositionGeodetic> {
+    const satellite: SatellitePositionGeodetic =
+      await this.orbitalClientService.getSatelliteInfo(noradID);
     return {
-      longitude: satellite.degreesLong(positionGd.longitude),
-      latitude: satellite.degreesLat(positionGd.latitude),
-      height: positionGd.height * 1000,
+      longitude: satellite.longitude,
+      latitude: satellite.latitude,
+      height: satellite.height,
     };
   }
 }
