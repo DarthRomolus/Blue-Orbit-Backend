@@ -1,7 +1,10 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import type { SatelliteData } from 'src/common/types/satellite';
+import type {
+  SatelliteData,
+  SatellitePositionGeodetic,
+} from 'src/common/types/satellite';
 
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
@@ -15,11 +18,12 @@ export class OrbitalClientService implements OnModuleInit {
       console.error('Failed to connect to RabbitMQ:', error);
     }
   }
-  async getSatelliteInfo(noradID: string) {
+  async getSatelliteInfo(noradID: string): Promise<SatellitePositionGeodetic> {
     const pattern = { info: 'satInfo' };
     const payload = noradID;
     const observable$ = this.client.send(pattern, payload);
-    const satellite: SatelliteData = await lastValueFrom(observable$);
+    const satellite: SatellitePositionGeodetic =
+      await lastValueFrom(observable$);
     return satellite;
   }
 }
