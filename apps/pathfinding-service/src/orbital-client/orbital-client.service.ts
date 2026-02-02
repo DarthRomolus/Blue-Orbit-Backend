@@ -5,6 +5,7 @@ import type {
   SatelliteData,
   SatellitePositionGeodetic,
 } from 'src/common/types/satellite';
+import type { reducedSatelliteInfo } from 'src/common/types/reducedSatelliteInfo.dto';
 
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
@@ -18,12 +19,23 @@ export class OrbitalClientService implements OnModuleInit {
       console.error('Failed to connect to RabbitMQ:', error);
     }
   }
-  async getSatelliteInfo(noradID: string): Promise<SatellitePositionGeodetic> {
-    const pattern = { info: 'satInfo' };
+  async getSatellitePosition(
+    noradID: string,
+  ): Promise<SatellitePositionGeodetic> {
+    const pattern = { cmd: 'satellite-position' };
     const payload = noradID;
     const observable$ = this.client.send(pattern, payload);
     const satellite: SatellitePositionGeodetic =
       await lastValueFrom(observable$);
     return satellite;
+  }
+  async getReducedAllSatelliteInfo(): Promise<reducedSatelliteInfo[]> {
+    const pattern = { cmd: 'all-satellite-data' };
+    const observable$ = this.client.send(pattern, {});
+    const reducedAllSatelliteInfo: reducedSatelliteInfo[] = await lastValueFrom(
+      observable$,
+      { defaultValue: null },
+    );
+    return reducedAllSatelliteInfo;
   }
 }
