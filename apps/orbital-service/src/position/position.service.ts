@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as satellite from 'satellite.js';
 import type { SatellitePositionGeodatic } from '../common/types/positionGeodetic.dto';
-import { SatelliteData } from '@generated/orbital-client';
+import type { SatelliteData } from 'src/common/types/satelliteData';
 import { DatabaseService } from 'src/database/database.service';
 import { TIME_RANGE } from 'src/common/constants/timeRange.constants';
 import { MEASUREMENTS_DEFAULTS } from 'src/common/constants/measurements.constants';
