@@ -5,11 +5,8 @@ import { VisibilityService } from './visibility.service';
 export class VisibilityController {
   constructor(private readonly visibilityService: VisibilityService) {}
 
-  @Get('/:id')
-  async getMaxSatelliteFootPrint(@Param('id') noradID: string) {
-    const effectiveRadius = this.visibilityService.calculateEffectiveRadius();
-    const pos =
-      await this.visibilityService.calculateSatellitePosition(noradID);
-    return { pos, effectiveRadius };
+  @Get('/test') //dev
+  public async test() {
+    return await this.visibilityService.checkRMQ();
   }
 }
