@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { CelestrackService } from 'src/celestrack/celestrack.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
+import type { reducedSatelliteInfo } from 'src/common/types/reducedSatelliteInfo.dto';
+
 @Injectable()
 export class OrbitalService {
   constructor(
@@ -9,7 +11,7 @@ export class OrbitalService {
     private readonly celestrackService: CelestrackService,
   ) {}
 
-  async processTleData(group: string): Promise<SatelliteData[]> {
+  async processTleData(group: string): Promise<SatelliteData[] | null> {
     const rawData = await this.celestrackService.getTleData(group);
     const lines = rawData.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
@@ -32,5 +34,8 @@ export class OrbitalService {
 
   async allSatellitesData(): Promise<SatelliteData[] | null> {
     return await this.databaseService.getAllSatellites();
+  }
+  async reducedSatelliteInfo(): Promise<reducedSatelliteInfo[] | null> {
+    return this.databaseService.getReducedAllSatelliteInfo();
   }
 }
