@@ -1,4 +1,7 @@
-import { VISIBILITY_EQUATION_VARIABLES } from 'src/common/constants/equation.constants';
+import {
+  VISIBILITY_EQUATION_VARIABLES,
+  LOCATION_COVERAGE_EQUATION_VARIABLES,
+} from 'src/common/constants/equation.constants';
 import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 import type { Coordinates } from '../types/coordinates';
 export function calculateEffectiveRadius(
@@ -19,7 +22,7 @@ export function calculateEffectiveRadius(
   const covrageRadiusKm = angleForRadiusInRadians * earthRadius;
   return covrageRadiusKm;
 }
-export function getDistanceKm(
+function getDistanceKm(
   satelliteCoverageCenter: Coordinates,
   locationCenter: Coordinates,
 ): number {
@@ -44,16 +47,58 @@ export function getDistanceKm(
 
   return VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM * angularDistance;
 }
+function calculateCoveragePercentage(
+  distanceKm: number,
+  locationRadiusKm: number,
+  satelliteRadiusKm: number,
+): number {
+  const r1 = locationRadiusKm;
+  const r2 = satelliteRadiusKm;
+  const d = distanceKm;
 
-export function doCirclesIntersect(
+  if (d <= 0 || r1 <= 0 || r2 <= 0) {
+    return 0;
+  }
+  // חפיפה חלקית (חישוב גיאומטרי מדויק)
+  const r1Sq = r1 * r1;
+  const r2Sq = r2 * r2;
+
+  const angle1 = Math.acos((d * d + r1Sq - r2Sq) / (2 * d * r1));
+  const angle2 = Math.acos((d * d + r2Sq - r1Sq) / (2 * d * r2));
+
+  // נוסחת הרון לחישוב שטח המשולש שבין המרכזים לנקודות החיתוך
+  const term = (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2);
+  const triangleArea = 0.5 * Math.sqrt(Math.max(0, term));
+  // שטח הגזרות פחות שטח המשולשים
+  const intersectionArea = r1Sq * angle1 + r2Sq * angle2 - triangleArea;
+
+  // החזרת היחס של כמה המטרה מכוסה
+  const targetArea = Math.PI * r1Sq;
+  return intersectionArea / targetArea;
+}
+export function calculateCoverageScore(
   locationCenter: Coordinates,
   locationRadiusKm: number,
   satelliteCoverageCenter: Coordinates,
   satelliteRadiusKm: number,
-): boolean {
-  // 1. חשב מרחק בין המרכזים
-  const distance = getDistanceKm(satelliteCoverageCenter, locationCenter);
+): number {
+  const distanceBetweenCenters = getDistanceKm(
+    satelliteCoverageCenter,
+    locationCenter,
+  );
 
-  // 2. אם המרחק קטן או שווה לסכום הרדיוסים - יש חפיפה (או השקה)
-  return distance <= locationRadiusKm + satelliteRadiusKm;
+  if (distanceBetweenCenters >= locationRadiusKm + satelliteRadiusKm) {
+    return LOCATION_COVERAGE_EQUATION_VARIABLES.NO_COVERAGE;
+  }
+  if (satelliteRadiusKm >= distanceBetweenCenters + locationRadiusKm) {
+    return LOCATION_COVERAGE_EQUATION_VARIABLES.MAX_COVERAGE;
+  }
+  if (distanceBetweenCenters + satelliteRadiusKm <= locationRadiusKm) {
+    return Math.pow(satelliteRadiusKm / locationRadiusKm, 2);
+  }
+  return calculateCoveragePercentage(
+    distanceBetweenCenters,
+    locationRadiusKm,
+    satelliteRadiusKm,
+  );
 }
