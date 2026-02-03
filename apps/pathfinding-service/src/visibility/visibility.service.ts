@@ -4,6 +4,8 @@ import {
   SatelliteData,
   SatellitePositionGeodetic,
 } from 'src/common/types/satellite';
+import { Coordinates } from 'src/common/types/coordinates';
+import { ReducedSatelliteInfo } from 'src/common/types/reducedSatelliteInfo.dto';
 
 @Injectable()
 export class VisibilityService {
@@ -23,5 +25,15 @@ export class VisibilityService {
   // ------------------------------------------------------------------DEV
   async checkRMQ() {
     return await this.orbitalClientService.getReducedAllSatelliteInfo();
+  }
+  async calculateMaxCoverageTimeWindow(
+    startDate: Date,
+    endDate: Date,
+    timeFrameHours: number,
+    locationCenter: Coordinates,
+    locationRadiusKm: number,
+  ) {
+    const reducedSatelliteInfo: ReducedSatelliteInfo[] =
+      await this.orbitalClientService.getReducedAllSatelliteInfo();
   }
 }
