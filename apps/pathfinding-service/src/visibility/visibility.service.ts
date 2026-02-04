@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { OrbitalClientService } from 'src/orbital-client/orbital-client.service';
-import {
-  SatelliteData,
-  SatellitePositionGeodetic,
-} from 'src/common/types/satellite';
+import { SatellitePositionGeodetic } from 'src/common/types/satellite';
 import { Coordinates } from 'src/common/types/coordinates';
-import { ReducedSatelliteInfo } from 'src/common/types/reducedSatelliteInfo.dto';
+import { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
+import * as satellite from 'satellite.js';
+import {
+  calculateCoverageScore,
+  calculateEffectiveRadius,
+} from 'src/common/utils/geo-calculations.utils';
+import { TimeWindowScore } from 'src/common/types/timeWindowScore';
+import { TIME_DEFUALTS } from 'src/common/constants/time.constants';
 
 @Injectable()
 export class VisibilityService {
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
 
-  async calculateSatellitePosition(
+  async calculateSatellitePositionById(
     noradID: string,
   ): Promise<SatellitePositionGeodetic> {
     const satellite: SatellitePositionGeodetic =

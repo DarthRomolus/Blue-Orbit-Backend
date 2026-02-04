@@ -5,7 +5,7 @@ import type {
   SatelliteData,
   SatellitePositionGeodetic,
 } from 'src/common/types/satellite';
-import type { reducedSatelliteInfo } from 'src/common/types/reducedSatelliteInfo.dto';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
 
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
@@ -29,10 +29,10 @@ export class OrbitalClientService implements OnModuleInit {
       await lastValueFrom(observable$);
     return satellite;
   }
-  async getReducedAllSatelliteInfo(): Promise<reducedSatelliteInfo[]> {
+  async getReducedAllSatelliteInfo(): Promise<ReducedSatelliteData[]> {
     const pattern = { cmd: 'all-satellite-data' };
     const observable$ = this.client.send(pattern, {});
-    const reducedAllSatelliteInfo: reducedSatelliteInfo[] = await lastValueFrom(
+    const reducedAllSatelliteInfo: ReducedSatelliteData[] = await lastValueFrom(
       observable$,
       { defaultValue: null },
     );
