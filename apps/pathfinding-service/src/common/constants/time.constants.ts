@@ -1,0 +1,4 @@
+export const TIME_DEFUALTS = {
+  HOURS_TO_MINUTES: 60,
+  TWO_MINUTES_TIME_FRAMES: 0.5,
+} as const;
