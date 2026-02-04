@@ -5,22 +5,21 @@ import {
 import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 import type { Coordinates } from '../types/coordinates';
 export function calculateEffectiveRadius(
-  satelliteAltitudeKm,
+  satelliteAltitudeKm: number,
   minElevationAngle: number = 30,
 ): number {
-  // ------------------------------------------------------------------DEV
-  const heightKm = satelliteAltitudeKm;
   const minElevationRad =
-    minElevationAngle * ANGLES_DEFAULTS.DEGREES_TO_RADIANS; //change to radians
+    minElevationAngle * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
 
   const earthRadius = VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
 
   const cosAngleForRadius =
-    (earthRadius / (earthRadius + heightKm)) * Math.cos(minElevationRad);
+    (earthRadius / (earthRadius + satelliteAltitudeKm)) *
+    Math.cos(minElevationRad);
   const angleForRadiusInRadians =
     Math.acos(cosAngleForRadius) - minElevationRad;
-  const covrageRadiusKm = angleForRadiusInRadians * earthRadius;
-  return covrageRadiusKm;
+  const coverageRadiusKm = angleForRadiusInRadians * earthRadius;
+  return coverageRadiusKm;
 }
 function getDistanceKm(
   satelliteCoverageCenter: Coordinates,
