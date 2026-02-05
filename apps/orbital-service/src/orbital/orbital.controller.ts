@@ -4,7 +4,7 @@ import { Get } from '@nestjs/common';
 import type { SatelliteData } from 'src/common/types/satelliteData';
 import { CELESTRACK_GROUPS } from 'src/common/constants/celestrak.constants';
 import { MessagePattern } from '@nestjs/microservices';
-import type { reducedSatelliteInfo } from 'src/common/types/reducedSatelliteInfo.dto';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
 
 @Controller('satellites')
 export class OrbitalController {
@@ -27,7 +27,7 @@ export class OrbitalController {
   }
   @MessagePattern({ cmd: 'all-satellite-data' })
   public async getAllSatellitesForRMQ(): Promise<
-    reducedSatelliteInfo[] | null
+    ReducedSatelliteData[] | null
   > {
     return await this.orbitalService.reducedSatelliteInfo();
   }
