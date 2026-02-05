@@ -9,13 +9,13 @@ import {
   calculateEffectiveRadius,
 } from 'src/common/utils/geo-calculations.utils';
 import { TimeWindowScore } from 'src/common/types/timeWindowScore';
-import { TIME_DEFUALTS } from 'src/common/constants/time.constants';
+import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 
 @Injectable()
 export class VisibilityService {
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
 
-  async calculateSatellitePositionById(
+  /*async calculateSatellitePositionById(
     noradID: string,
   ): Promise<SatellitePositionGeodetic> {
     const satellite: SatellitePositionGeodetic =
