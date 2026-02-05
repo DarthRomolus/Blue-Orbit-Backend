@@ -88,7 +88,7 @@ export class PositionService {
     if (!satelliteData) {
       return undefined;
     }
-    let pathPoints: SatellitePositionGeodatic[] = [];
+    const pathPoints: SatellitePositionGeodetic[] = [];
     while (currentDate <= endDate) {
       const position = this.calculateSatellitePositionByData(
         satelliteData,
