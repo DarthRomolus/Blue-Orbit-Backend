@@ -25,7 +25,7 @@ export class VisibilityService {
       latitude: satellite.latitude,
       height: satellite.height,
     };
-  }
+  }*/
   private calculateSatellitePositionBySatrec(
     satrec: satellite.SatRec,
     date: Date,
@@ -48,7 +48,7 @@ export class VisibilityService {
     };
     return positionGdDegrees;
   }
-  async momentaryCoverageScore(
+  private async momentaryCoverageScore(
     startDate: Date,
     endDate: Date,
     locationCenter: Coordinates,
@@ -98,12 +98,14 @@ export class VisibilityService {
         timeWindowScore += satelliteScore;
       }
       momentaryCoverageScore.set(timestamp, timeWindowScore);
-      currentTime.setMinutes(currentTime.getMinutes() + 2);
+      currentTime.setMinutes(
+        currentTime.getMinutes() + TIME_DEFAULTS.TIME_STEP_MINUTES,
+      );
     }
 
     return momentaryCoverageScore;
   }
-  //------------------------------------------------dev(make sliding window)---------------
+
   async calculateMaxCoverageTimeWindow(
     startDate: Date,
     endDate: Date,
@@ -111,14 +113,16 @@ export class VisibilityService {
     locationRadiusKm: number,
     timeFrameHours: number,
   ): Promise<TimeWindowScore> {
-    const timeFrameMinute =
-      timeFrameHours *
-      TIME_DEFUALTS.HOURS_TO_MINUTES *
-      TIME_DEFUALTS.TWO_MINUTES_TIME_FRAMES;
+    const timeFrameSlots = Math.floor(
+      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
+        TIME_DEFAULTS.TIME_STEP_MINUTES,
+    );
+
     let maxCoverageTimeWindow: TimeWindowScore = {
       startTime: null,
       coverageScore: 0,
     };
+    let windowSum: number = 0;
     const coverageScoreMap = await this.momentaryCoverageScore(
       startDate,
       endDate,
@@ -131,14 +135,23 @@ export class VisibilityService {
         return { startTime: new Date(timestamp), coverageScore };
       },
     );
-    for (let i = 0; i < entries.length; i++) {
-      let momentaryCoverageScoreSum = 0;
-      for (let j = i; j < i + timeFrameMinute; j++) {
-        momentaryCoverageScoreSum =
-          momentaryCoverageScoreSum + entries[j].coverageScore;
-      }
-      if (momentaryCoverageScoreSum > maxCoverageTimeWindow.coverageScore) {
-        maxCoverageTimeWindow.coverageScore = momentaryCoverageScoreSum;
+    if (entries.length < timeFrameSlots) {
+      return { startTime: null, coverageScore: 0 };
+    }
+    for (let i = 0; i < timeFrameSlots; i++) {
+      windowSum = windowSum + entries[i].coverageScore;
+    }
+    maxCoverageTimeWindow.startTime = entries[0].startTime;
+    maxCoverageTimeWindow.coverageScore = windowSum;
+
+    for (let i = 1; i <= entries.length - timeFrameSlots; i++) {
+      windowSum =
+        windowSum -
+        entries[i - 1].coverageScore +
+        entries[i + timeFrameSlots - 1].coverageScore;
+
+      if (windowSum > maxCoverageTimeWindow.coverageScore) {
+        maxCoverageTimeWindow.coverageScore = windowSum;
         maxCoverageTimeWindow.startTime = entries[i].startTime;
       }
     }
