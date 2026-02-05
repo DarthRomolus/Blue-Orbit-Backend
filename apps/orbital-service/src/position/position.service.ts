@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as satellite from 'satellite.js';
-import type { SatellitePositionGeodatic } from '../common/types/positionGeodetic.dto';
+import type { SatellitePositionGeodetic } from '../common/types/positionGeodetic.dto';
 import type { SatelliteData } from 'src/common/types/satelliteData';
 import { DatabaseService } from 'src/database/database.service';
 import { TIME_RANGE } from 'src/common/constants/timeRange.constants';
@@ -13,7 +13,7 @@ export class PositionService {
   async calculateSatellitePositionById(
     noradID: string,
     date: Date,
-  ): Promise<SatellitePositionGeodatic | undefined> {
+  ): Promise<SatellitePositionGeodetic | undefined> {
     try {
       const satelliteTle: SatelliteData | null =
         await this.databaseService.getSatelliteById(noradID);
@@ -49,7 +49,7 @@ export class PositionService {
   calculateSatellitePositionByData(
     satelliteData: SatelliteData,
     date: Date,
-  ): SatellitePositionGeodatic | undefined {
+  ): SatellitePositionGeodetic | undefined {
     const tleLine1: string = satelliteData.line1;
     const tleLine2: string = satelliteData.line2;
     const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
@@ -74,7 +74,7 @@ export class PositionService {
 
   async calculateSatellitePath(
     noradId: string,
-  ): Promise<SatellitePositionGeodatic[] | undefined> {
+  ): Promise<SatellitePositionGeodetic[] | undefined> {
     const currentDate = new Date();
     const endDate = new Date(
       currentDate.getTime() +
