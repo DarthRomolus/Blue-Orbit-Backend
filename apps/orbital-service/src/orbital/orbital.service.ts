@@ -11,7 +11,7 @@ export class OrbitalService {
     private readonly celestrackService: CelestrackService,
   ) {}
 
-  async processTleData(group: string): Promise<SatelliteData[] | null> {
+  async processTleData(group: string): Promise<SatelliteData[]> {
     const rawData = await this.celestrackService.getTleData(group);
     const lines = rawData.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
@@ -32,10 +32,10 @@ export class OrbitalService {
     return await this.databaseService.getAllSatellites();
   }
 
-  async allSatellitesData(): Promise<SatelliteData[] | null> {
+  async allSatellitesData(): Promise<SatelliteData[]> {
     return await this.databaseService.getAllSatellites();
   }
-  async reducedSatelliteInfo(): Promise<reducedSatelliteInfo[] | null> {
-    return this.databaseService.getReducedAllSatelliteInfo();
+  async reducedSatelliteInfo(): Promise<ReducedSatelliteData[]> {
+    return await this.databaseService.getReducedAllSatelliteInfo();
   }
 }
