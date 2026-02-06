@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { OrbitalClientService } from './orbital-client.service';
 import { Client, ClientsModule, Transport } from '@nestjs/microservices';
-import { VisibilityModule } from 'src/visibility/visibility.module';
 
 @Module({
   imports: [

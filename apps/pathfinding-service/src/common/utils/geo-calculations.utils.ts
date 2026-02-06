@@ -6,7 +6,7 @@ import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 import type { Coordinates } from '../types/coordinates';
 export function calculateEffectiveRadius(
   satelliteAltitudeKm: number,
-  minElevationAngle: number = 30,
+  minElevationAngle: number = ANGLES_DEFAULTS.MINIMUM_VISIBILITY_ANGLE,
 ): number {
   const minElevationRad =
     minElevationAngle * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;

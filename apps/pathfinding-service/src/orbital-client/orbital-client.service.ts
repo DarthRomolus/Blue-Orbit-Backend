@@ -1,11 +1,8 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import type {
-  SatelliteData,
-  SatellitePositionGeodetic,
-} from 'src/common/types/satellite';
-import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
+import type { SatellitePositionGeodetic } from 'src/common/types/satellite';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
 
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
