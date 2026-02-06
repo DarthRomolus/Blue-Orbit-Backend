@@ -36,25 +36,33 @@ export class VisibilityService {
     };
     return positionGdDegrees;
   }
-  private async momentaryCoverageScore(
-    startDate: Date,
-    endDate: Date,
-    locationCenter: Coordinates,
-    locationRadiusKm: number,
-  ): Promise<Map<number, number>> {
-    const momentaryCoverageScore: Map<number, number> = new Map();
-    let currentTime: Date = new Date(startDate);
 
+  private async buildSatrecs(): Promise<satellite.SatRec[]> {
+    //OK
     const reducedSatelliteData: ReducedSatelliteData[] =
       await this.orbitalClientService.getReducedAllSatelliteInfo();
 
     const satrecs: satellite.SatRec[] = [];
     for (const data of reducedSatelliteData) {
       try {
-        const satrec = satellite.twoline2satrec(data.line1, data.line2);
-        satrecs.push(satrec);
+        satrecs.push(satellite.twoline2satrec(data.line1, data.line2));
       } catch {}
     }
+    return satrecs;
+  }
+
+  private async momentaryCoverageScore(
+    startDate: Date,
+    endDate: Date,
+    locationCenter: Coordinates,
+    locationRadiusKm: number,
+    stepMinutes: number = TIME_DEFAULTS.FINE_STEP_MINUTES,
+    prebuiltSatrecs?: satellite.SatRec[],
+  ): Promise<Map<number, number>> {
+    const momentaryCoverageScore: Map<number, number> = new Map();
+    let currentTime: Date = new Date(startDate);
+
+    const satrecs = prebuiltSatrecs ?? (await this.buildSatrecs());
 
     while (currentTime <= endDate) {
       const timestamp = currentTime.getTime();
@@ -86,13 +94,12 @@ export class VisibilityService {
         timeWindowScore += satelliteScore;
       }
       momentaryCoverageScore.set(timestamp, timeWindowScore);
-      currentTime.setMinutes(
-        currentTime.getMinutes() + TIME_DEFAULTS.TIME_STEP_MINUTES,
-      );
+      currentTime = new Date(currentTime.getTime() + stepMinutes * 60_000); //dev
     }
 
     return momentaryCoverageScore;
   }
+  //-----------------------------------------------dev----------------------
 
   async calculateMaxCoverageTimeWindow(
     startDate: Date,
@@ -103,7 +110,7 @@ export class VisibilityService {
   ): Promise<TimeWindowScore> {
     const timeFrameSlots = Math.floor(
       (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
-        TIME_DEFAULTS.TIME_STEP_MINUTES,
+        TIME_DEFAULTS.FINE_STEP_MINUTES,
     );
 
     let maxCoverageTimeWindow: TimeWindowScore = {
@@ -116,6 +123,7 @@ export class VisibilityService {
       endDate,
       locationCenter,
       locationRadiusKm,
+      TIME_DEFAULTS.FINE_STEP_MINUTES,
     );
     const entries: TimeWindowScore[] = Array.from(
       coverageScoreMap,
@@ -144,5 +152,134 @@ export class VisibilityService {
       }
     }
     return maxCoverageTimeWindow;
+  }
+  //-----------------------------------------------dev----------------------
+  async calculateMaxCoverageTimeWindowOptimized(
+    startDate: Date,
+    endDate: Date,
+    locationCenter: Coordinates,
+    locationRadiusKm: number,
+    timeFrameHours: number,
+  ): Promise<TimeWindowScore> {
+    const satrecs = await this.buildSatrecs();
+
+    const coarseScoreMap = await this.momentaryCoverageScore(
+      startDate,
+      endDate,
+      locationCenter,
+      locationRadiusKm,
+      TIME_DEFAULTS.COARSE_STEP_MINUTES,
+      satrecs,
+    );
+
+    // ── Step 2: Coarse Sliding Window ────────────────────────────────
+    const coarseEntries: TimeWindowScore[] = Array.from(
+      coarseScoreMap,
+      ([timestamp, coverageScore]) => ({
+        startTime: new Date(timestamp),
+        coverageScore,
+      }),
+    );
+
+    const coarseTimeFrameSlots = Math.floor(
+      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
+        TIME_DEFAULTS.COARSE_STEP_MINUTES,
+    );
+
+    if (coarseEntries.length < coarseTimeFrameSlots) {
+      return { startTime: null, coverageScore: 0 };
+    }
+
+    let coarseWindowSum = 0;
+    for (let i = 0; i < coarseTimeFrameSlots; i++) {
+      coarseWindowSum += coarseEntries[i].coverageScore;
+    }
+
+    let bestCoarseStart: Date | null = coarseEntries[0].startTime;
+    let bestCoarseScore: number = coarseWindowSum;
+
+    for (let i = 1; i <= coarseEntries.length - coarseTimeFrameSlots; i++) {
+      coarseWindowSum =
+        coarseWindowSum -
+        coarseEntries[i - 1].coverageScore +
+        coarseEntries[i + coarseTimeFrameSlots - 1].coverageScore;
+
+      if (coarseWindowSum > bestCoarseScore) {
+        bestCoarseScore = coarseWindowSum;
+        bestCoarseStart = coarseEntries[i].startTime;
+      }
+    }
+
+    if (!bestCoarseStart) {
+      return { startTime: null, coverageScore: 0 };
+    }
+
+    // ── Step 3: Define Fine-Tuning Range (±20 min padding) ──────────
+    const paddingMs = TIME_DEFAULTS.PADDING_MINUTES * 60_000;
+    const timeFrameMs = timeFrameHours * 3_600_000;
+
+    const fineStart = new Date(
+      Math.max(bestCoarseStart.getTime() - paddingMs, startDate.getTime()),
+    );
+    const fineEnd = new Date(
+      Math.min(
+        bestCoarseStart.getTime() + timeFrameMs + paddingMs,
+        endDate.getTime(),
+      ),
+    );
+
+    // ── Step 4: Fine Scan (1-min resolution over candidate window) ──
+    const fineScoreMap = await this.momentaryCoverageScore(
+      fineStart,
+      fineEnd,
+      locationCenter,
+      locationRadiusKm,
+      TIME_DEFAULTS.FINE_STEP_MINUTES,
+      satrecs,
+    );
+
+    // ── Step 5: Final Sliding Window ─────────────────────────────────
+    const fineEntries = Array.from(
+      fineScoreMap,
+      ([timestamp, coverageScore]) => ({
+        startTime: new Date(timestamp),
+        coverageScore,
+      }),
+    );
+
+    const fineTimeFrameSlots = Math.floor(
+      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
+        TIME_DEFAULTS.FINE_STEP_MINUTES,
+    );
+
+    if (fineEntries.length < fineTimeFrameSlots) {
+      return { startTime: null, coverageScore: 0 };
+    }
+
+    let fineWindowSum = 0;
+    for (let i = 0; i < fineTimeFrameSlots; i++) {
+      fineWindowSum += fineEntries[i].coverageScore;
+    }
+
+    let result: TimeWindowScore = {
+      startTime: fineEntries[0].startTime,
+      coverageScore: fineWindowSum,
+    };
+
+    for (let i = 1; i <= fineEntries.length - fineTimeFrameSlots; i++) {
+      fineWindowSum =
+        fineWindowSum -
+        fineEntries[i - 1].coverageScore +
+        fineEntries[i + fineTimeFrameSlots - 1].coverageScore;
+
+      if (fineWindowSum > result.coverageScore) {
+        result = {
+          startTime: fineEntries[i].startTime,
+          coverageScore: fineWindowSum,
+        };
+      }
+    }
+
+    return result;
   }
 }
