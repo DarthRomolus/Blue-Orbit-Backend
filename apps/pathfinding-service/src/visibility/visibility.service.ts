@@ -67,7 +67,6 @@ export class VisibilityService {
     prebuiltSatrecs?: satellite.SatRec[],
   ): Promise<Map<number, number>> {
     const momentaryCoverageScore: Map<number, number> = new Map();
-    let currentTime: Date = new Date(startDate);
 
     let satrecs: satellite.SatRec[];
     if (prebuiltSatrecs) {
@@ -77,9 +76,13 @@ export class VisibilityService {
       satrecs = await this.buildSatrecs(reducedSatelliteData);
     }
 
-    while (currentTime <= endDate) {
-      const timestamp = currentTime.getTime();
-      momentaryCoverageScore.set(timestamp, 0);
+    const stepMs = stepMinutes * TIME_DEFAULTS.MS_IN_MINUTE;
+    const endTimestamp = endDate.getTime();
+    let timestamp = startDate.getTime();
+    const currentTime = new Date(timestamp);
+
+    while (timestamp <= endTimestamp) {
+      currentTime.setTime(timestamp);
       let timeWindowScore = 0;
 
       for (const satrec of satrecs) {
@@ -107,9 +110,7 @@ export class VisibilityService {
         timeWindowScore += satelliteScore;
       }
       momentaryCoverageScore.set(timestamp, timeWindowScore);
-      currentTime = new Date(
-        currentTime.getTime() + stepMinutes * TIME_DEFAULTS.MS_IN_MINUTE,
-      ); //dev
+      timestamp += stepMs;
     }
 
     return momentaryCoverageScore;
@@ -192,7 +193,8 @@ export class VisibilityService {
         coverageScore: bestCoarseScore,
       };
     }
-    const paddingMs = TIME_DEFAULTS.PADDING_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const paddingMs =
+      TIME_DEFAULTS.PADDING_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
     const timeFrameMs = timeFrameHours * TIME_DEFAULTS.MS_IN_HOUR;
 
     const fineStart = new Date(
