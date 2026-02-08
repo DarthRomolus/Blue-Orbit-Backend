@@ -65,9 +65,7 @@ export class VisibilityService {
     locationRadiusKm: number,
     stepMinutes: number = TIME_DEFAULTS.FINE_STEP_MINUTES,
     prebuiltSatrecs?: satellite.SatRec[],
-  ): Promise<Map<number, number>> {
-    const momentaryCoverageScore: Map<number, number> = new Map();
-
+  ): Promise<Float64Array> {
     let satrecs: satellite.SatRec[];
     if (prebuiltSatrecs) {
       satrecs = prebuiltSatrecs;
@@ -77,11 +75,15 @@ export class VisibilityService {
     }
 
     const stepMs = stepMinutes * TIME_DEFAULTS.MS_IN_MINUTE;
+    const startTimestamp = startDate.getTime();
     const endTimestamp = endDate.getTime();
-    let timestamp = startDate.getTime();
-    const currentTime = new Date(timestamp);
+    const slotCount = Math.floor((endTimestamp - startTimestamp) / stepMs) + 1;
+    const scores = new Float64Array(slotCount);
 
-    while (timestamp <= endTimestamp) {
+    const currentTime = new Date(startTimestamp);
+    let timestamp = startTimestamp;
+
+    for (let i = 0; i < slotCount; i++) {
       currentTime.setTime(timestamp);
       let timeWindowScore = 0;
 
@@ -109,11 +111,11 @@ export class VisibilityService {
 
         timeWindowScore += satelliteScore;
       }
-      momentaryCoverageScore.set(timestamp, timeWindowScore);
+      scores[i] = timeWindowScore;
       timestamp += stepMs;
     }
 
-    return momentaryCoverageScore;
+    return scores;
   }
   async calculateMaxCoverageTimeWindowOptimized(
     startDate: Date,
