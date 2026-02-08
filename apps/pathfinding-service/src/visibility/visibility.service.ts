@@ -1,43 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { OrbitalClientService } from 'src/orbital-client/orbital-client.service';
-import { SatellitePositionGeodetic } from 'src/common/types/satellite';
 import { Coordinates } from 'src/common/types/coordinates';
 import { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
-import * as satellite from 'satellite.js';
-import {
-  calculateCoverageScore,
-  calculateEffectiveRadius,
-} from 'src/common/utils/geo-calculations.utils';
 import { TimeWindowScore } from 'src/common/types/timeWindowScore';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 import Piscina from 'piscina';
 import { resolve } from 'path';
-import { filename } from './workers/coverage.worker';
 
 @Injectable()
-export class VisibilityService {
+export class VisibilityService implements OnModuleInit {
+  private workerPool: Piscina;
+
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
-  private calculateSatellitePositionBySatrec(
-    satrec: satellite.SatRec,
-    date: Date,
-  ): SatellitePositionGeodetic | undefined {
-    const positionAndVelocity = satellite.propagate(satrec, date);
-    if (
-      !positionAndVelocity?.position ||
-      typeof positionAndVelocity.position !== 'object'
-    ) {
-      return undefined;
-    }
-    const positionEci: satellite.EciVec3<number> = positionAndVelocity.position;
-    const gmst = satellite.gstime(date);
-    const positionGdRadians: SatellitePositionGeodetic =
-      satellite.eciToGeodetic(positionEci, gmst);
-    const positionGdDegrees: SatellitePositionGeodetic = {
-      latitude: satellite.radiansToDegrees(positionGdRadians.latitude),
-      longitude: satellite.radiansToDegrees(positionGdRadians.longitude),
-      height: positionGdRadians.height,
-    };
-    return positionGdDegrees;
+
+  onModuleInit() {
+    this.workerPool = new Piscina({
+      filename: resolve(__dirname, 'workers/coverage.worker.js'),
+      maxThreads: 4,
+    });
   }
   private async fetchTleData(): Promise<ReducedSatelliteData[]> {
     try {
@@ -49,77 +29,6 @@ export class VisibilityService {
     }
   }
 
-  private async buildSatrecs(
-    reducedSatelliteData: ReducedSatelliteData[],
-  ): Promise<satellite.SatRec[]> {
-    const satrecs: satellite.SatRec[] = [];
-    for (const data of reducedSatelliteData) {
-      try {
-        satrecs.push(satellite.twoline2satrec(data.line1, data.line2));
-      } catch {}
-    }
-    return satrecs;
-  }
-
-  private async momentaryCoverageScore(
-    startDate: Date,
-    endDate: Date,
-    locationCenter: Coordinates,
-    locationRadiusKm: number,
-    stepMinutes: number = TIME_DEFAULTS.FINE_STEP_MINUTES,
-    prebuiltSatrecs?: satellite.SatRec[],
-  ): Promise<Float64Array> {
-    let satrecs: satellite.SatRec[];
-    if (prebuiltSatrecs) {
-      satrecs = prebuiltSatrecs;
-    } else {
-      const reducedSatelliteData = await this.fetchTleData();
-      satrecs = await this.buildSatrecs(reducedSatelliteData);
-    }
-
-    const stepMs = stepMinutes * TIME_DEFAULTS.MS_IN_MINUTE;
-    const startTimestamp = startDate.getTime();
-    const endTimestamp = endDate.getTime();
-    const slotCount = Math.floor((endTimestamp - startTimestamp) / stepMs) + 1;
-    const scores = new Float64Array(slotCount);
-
-    const currentTime = new Date(startTimestamp);
-    let timestamp = startTimestamp;
-
-    for (let i = 0; i < slotCount; i++) {
-      currentTime.setTime(timestamp);
-      let timeWindowScore = 0;
-
-      for (const satrec of satrecs) {
-        const positionGd = this.calculateSatellitePositionBySatrec(
-          satrec,
-          currentTime,
-        );
-        if (!positionGd) {
-          continue;
-        }
-        const satelliteCoverageCenter: Coordinates = {
-          latitude: positionGd.latitude,
-          longitude: positionGd.longitude,
-        };
-        const satelliteCoverageRadius = calculateEffectiveRadius(
-          positionGd.height,
-        );
-        const satelliteScore = calculateCoverageScore(
-          locationCenter,
-          locationRadiusKm,
-          satelliteCoverageCenter,
-          satelliteCoverageRadius,
-        );
-
-        timeWindowScore += satelliteScore;
-      }
-      scores[i] = timeWindowScore;
-      timestamp += stepMs;
-    }
-
-    return scores;
-  }
   async calculateMaxCoverageTimeWindowOptimized(
     startDate: Date,
     endDate: Date,
@@ -137,19 +46,18 @@ export class VisibilityService {
 
     const reducedSatelliteData: ReducedSatelliteData[] =
       await this.fetchTleData();
-    const satrecsCoarse = await this.buildSatrecs(reducedSatelliteData);
-    const satrecsFine = await this.buildSatrecs(reducedSatelliteData);
 
     const coarseStepMs =
       TIME_DEFAULTS.COARSE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
-    const coarseScores = await this.momentaryCoverageScore(
-      snappedStart,
-      snappedEnd,
+
+    const coarseScores = (await this.workerPool.run({
+      startDate: snappedStart,
+      endDate: snappedEnd,
       locationCenter,
       locationRadiusKm,
-      TIME_DEFAULTS.COARSE_STEP_MINUTES,
-      satrecsCoarse,
-    );
+      stepMinutes: TIME_DEFAULTS.COARSE_STEP_MINUTES,
+      reducedSatelliteData, // שולחים את המידע הגולמי
+    })) as Float64Array;
 
     const coarseEntries: TimeWindowScore[] = Array.from(
       coarseScores,
@@ -215,14 +123,14 @@ export class VisibilityService {
 
     const fineStepMs =
       TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
-    const fineScores = await this.momentaryCoverageScore(
-      fineStart,
-      fineEnd,
+    const fineScores = (await this.workerPool.run({
+      startDate: fineStart,
+      endDate: fineEnd,
       locationCenter,
       locationRadiusKm,
-      TIME_DEFAULTS.FINE_STEP_MINUTES,
-      satrecsFine,
-    );
+      stepMinutes: TIME_DEFAULTS.FINE_STEP_MINUTES,
+      reducedSatelliteData,
+    })) as Float64Array;
 
     const fineEntries = Array.from(fineScores, (coverageScore, i) => ({
       startTime: new Date(fineStart.getTime() + i * fineStepMs),
