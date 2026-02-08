@@ -101,66 +101,13 @@ export class VisibilityService {
         timeWindowScore += satelliteScore;
       }
       momentaryCoverageScore.set(timestamp, timeWindowScore);
-      currentTime = new Date(currentTime.getTime() + stepMinutes * 60_000); //dev
+      currentTime = new Date(
+        currentTime.getTime() + stepMinutes * TIME_DEFAULTS.MS_IN_MINUTE,
+      ); //dev
     }
 
     return momentaryCoverageScore;
   }
-  //-----------------------------------------------dev----------------------
-
-  async calculateMaxCoverageTimeWindow(
-    startDate: Date,
-    endDate: Date,
-    locationCenter: Coordinates,
-    locationRadiusKm: number,
-    timeFrameHours: number,
-  ): Promise<TimeWindowScore> {
-    const timeFrameSlots = Math.floor(
-      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
-        TIME_DEFAULTS.FINE_STEP_MINUTES,
-    );
-
-    let maxCoverageTimeWindow: TimeWindowScore = {
-      startTime: null,
-      coverageScore: 0,
-    };
-    let windowSum: number = 0;
-    const coverageScoreMap = await this.momentaryCoverageScore(
-      startDate,
-      endDate,
-      locationCenter,
-      locationRadiusKm,
-      TIME_DEFAULTS.FINE_STEP_MINUTES,
-    );
-    const entries: TimeWindowScore[] = Array.from(
-      coverageScoreMap,
-      ([timestamp, coverageScore]) => {
-        return { startTime: new Date(timestamp), coverageScore };
-      },
-    );
-    if (entries.length < timeFrameSlots) {
-      return { startTime: null, coverageScore: 0 };
-    }
-    for (let i = 0; i < timeFrameSlots; i++) {
-      windowSum = windowSum + entries[i].coverageScore;
-    }
-    maxCoverageTimeWindow.startTime = entries[0].startTime;
-    maxCoverageTimeWindow.coverageScore = windowSum;
-
-    for (let i = 1; i <= entries.length - timeFrameSlots; i++) {
-      windowSum =
-        windowSum -
-        entries[i - 1].coverageScore +
-        entries[i + timeFrameSlots - 1].coverageScore;
-
-      if (windowSum > maxCoverageTimeWindow.coverageScore) {
-        maxCoverageTimeWindow.coverageScore = windowSum;
-        maxCoverageTimeWindow.startTime = entries[i].startTime;
-      }
-    }
-    return maxCoverageTimeWindow;
-  }
-  //-----------------------------------------------dev----------------------
   async calculateMaxCoverageTimeWindowOptimized(
     startDate: Date,
     endDate: Date,
@@ -168,18 +115,29 @@ export class VisibilityService {
     locationRadiusKm: number,
     timeFrameHours: number,
   ): Promise<TimeWindowScore> {
-    const satrecs = await this.buildSatrecs();
+    // Snap to nearest step boundary so requests arriving ms apart get identical time grids
+    const stepMs = TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const snappedStart = new Date(
+      Math.ceil(startDate.getTime() / stepMs) * stepMs,
+    );
+    const snappedEnd = new Date(
+      Math.floor(endDate.getTime() / stepMs) * stepMs,
+    );
+
+    const reducedSatelliteData: ReducedSatelliteData[] =
+      await this.fetchTleData();
+    const satrecsCoarse = await this.buildSatrecs(reducedSatelliteData);
+    const satrecsFine = await this.buildSatrecs(reducedSatelliteData);
 
     const coarseScoreMap = await this.momentaryCoverageScore(
-      startDate,
-      endDate,
+      snappedStart,
+      snappedEnd,
       locationCenter,
       locationRadiusKm,
       TIME_DEFAULTS.COARSE_STEP_MINUTES,
-      satrecs,
+      satrecsCoarse,
     );
 
-    // ── Step 2: Coarse Sliding Window ────────────────────────────────
     const coarseEntries: TimeWindowScore[] = Array.from(
       coarseScoreMap,
       ([timestamp, coverageScore]) => ({
