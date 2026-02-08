@@ -5,19 +5,17 @@ import { VisibilityService } from './visibility.service';
 export class VisibilityController {
   constructor(private readonly visibilityService: VisibilityService) {}
 
-  //---------------------------------------------DEV------------------------------------
   @Get('test2')
   async runSanityTest2() {
-    const startDate = new Date('2026-02-08T00:00:00.000Z');
-    const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // עוד 4 שעות
+    const startDate = new Date('2026-02-08T16:50:02.200Z');
+    const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const telAvivCoords = { latitude: 32.0853, longitude: 34.7818 };
-    const radiusKm = 100; // רדיוס גדול כדי בטוח לתפוס משהו
-    const timeFrameHours = 11; // מחפשים את החלון הכי טוב של שעה אחת
+    const radiusKm = 100;
+    const timeFrameHours = 1;
 
-    console.log('--- מפעיל בדיקה ידנית ---');
     console.log(
-      `בודק בין ${startDate.toISOString()} לבין ${endDate.toISOString()}`,
+      `check between ${startDate.toISOString()} and ${endDate.toISOString()}`,
     );
 
     const result =
