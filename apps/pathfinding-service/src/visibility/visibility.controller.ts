@@ -8,7 +8,7 @@ export class VisibilityController {
   //---------------------------------------------DEV------------------------------------
   @Get('test2')
   async runSanityTest2() {
-    const startDate = new Date('2026-02-07T00:00:00.000Z');
+    const startDate = new Date('2026-02-08T00:00:00.000Z');
     const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // עוד 4 שעות
 
     const telAvivCoords = { latitude: 32.0853, longitude: 34.7818 };
