@@ -36,12 +36,19 @@ export class VisibilityService {
     };
     return positionGdDegrees;
   }
+  private async fetchTleData(): Promise<ReducedSatelliteData[]> {
+    try {
+      const reducedSatelliteData: ReducedSatelliteData[] =
+        await this.orbitalClientService.getReducedAllSatelliteInfo();
+      return reducedSatelliteData;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-  private async buildSatrecs(): Promise<satellite.SatRec[]> {
-    //OK
-    const reducedSatelliteData: ReducedSatelliteData[] =
-      await this.orbitalClientService.getReducedAllSatelliteInfo();
-
+  private async buildSatrecs(
+    reducedSatelliteData: ReducedSatelliteData[],
+  ): Promise<satellite.SatRec[]> {
     const satrecs: satellite.SatRec[] = [];
     for (const data of reducedSatelliteData) {
       try {
