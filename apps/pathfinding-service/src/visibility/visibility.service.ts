@@ -124,7 +124,6 @@ export class VisibilityService {
     locationRadiusKm: number,
     timeFrameHours: number,
   ): Promise<TimeWindowScore> {
-    // Snap to nearest step boundary so requests arriving ms apart get identical time grids
     const stepMs = TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
     const snappedStart = new Date(
       Math.ceil(startDate.getTime() / stepMs) * stepMs,
@@ -138,7 +137,9 @@ export class VisibilityService {
     const satrecsCoarse = await this.buildSatrecs(reducedSatelliteData);
     const satrecsFine = await this.buildSatrecs(reducedSatelliteData);
 
-    const coarseScoreMap = await this.momentaryCoverageScore(
+    const coarseStepMs =
+      TIME_DEFAULTS.COARSE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const coarseScores = await this.momentaryCoverageScore(
       snappedStart,
       snappedEnd,
       locationCenter,
@@ -148,9 +149,9 @@ export class VisibilityService {
     );
 
     const coarseEntries: TimeWindowScore[] = Array.from(
-      coarseScoreMap,
-      ([timestamp, coverageScore]) => ({
-        startTime: new Date(timestamp),
+      coarseScores,
+      (coverageScore, i) => ({
+        startTime: new Date(snappedStart.getTime() + i * coarseStepMs),
         coverageScore,
       }),
     );
@@ -209,7 +210,9 @@ export class VisibilityService {
       ),
     );
 
-    const fineScoreMap = await this.momentaryCoverageScore(
+    const fineStepMs =
+      TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const fineScores = await this.momentaryCoverageScore(
       fineStart,
       fineEnd,
       locationCenter,
@@ -218,13 +221,10 @@ export class VisibilityService {
       satrecsFine,
     );
 
-    const fineEntries = Array.from(
-      fineScoreMap,
-      ([timestamp, coverageScore]) => ({
-        startTime: new Date(timestamp),
-        coverageScore,
-      }),
-    );
+    const fineEntries = Array.from(fineScores, (coverageScore, i) => ({
+      startTime: new Date(fineStart.getTime() + i * fineStepMs),
+      coverageScore,
+    }));
 
     const fineTimeFrameSlots = Math.floor(
       (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
