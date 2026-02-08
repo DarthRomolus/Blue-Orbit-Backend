@@ -69,7 +69,13 @@ export class VisibilityService {
     const momentaryCoverageScore: Map<number, number> = new Map();
     let currentTime: Date = new Date(startDate);
 
-    const satrecs = prebuiltSatrecs ?? (await this.buildSatrecs());
+    let satrecs: satellite.SatRec[];
+    if (prebuiltSatrecs) {
+      satrecs = prebuiltSatrecs;
+    } else {
+      const reducedSatelliteData = await this.fetchTleData();
+      satrecs = await this.buildSatrecs(reducedSatelliteData);
+    }
 
     while (currentTime <= endDate) {
       const timestamp = currentTime.getTime();
@@ -178,32 +184,36 @@ export class VisibilityService {
     if (!bestCoarseStart) {
       return { startTime: null, coverageScore: 0 };
     }
+    if (timeFrameHours > TIME_DEFAULTS.FINE_TUNING_THRESHOLD_HOURS) {
+      console.log('Large window requested. Skipping fine-tuning.');
 
-    // ── Step 3: Define Fine-Tuning Range (±20 min padding) ──────────
-    const paddingMs = TIME_DEFAULTS.PADDING_MINUTES * 60_000;
-    const timeFrameMs = timeFrameHours * 3_600_000;
+      return {
+        startTime: bestCoarseStart,
+        coverageScore: bestCoarseScore,
+      };
+    }
+    const paddingMs = TIME_DEFAULTS.PADDING_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const timeFrameMs = timeFrameHours * TIME_DEFAULTS.MS_IN_HOUR;
 
     const fineStart = new Date(
-      Math.max(bestCoarseStart.getTime() - paddingMs, startDate.getTime()),
+      Math.max(bestCoarseStart.getTime() - paddingMs, snappedStart.getTime()),
     );
     const fineEnd = new Date(
       Math.min(
         bestCoarseStart.getTime() + timeFrameMs + paddingMs,
-        endDate.getTime(),
+        snappedEnd.getTime(),
       ),
     );
 
-    // ── Step 4: Fine Scan (1-min resolution over candidate window) ──
     const fineScoreMap = await this.momentaryCoverageScore(
       fineStart,
       fineEnd,
       locationCenter,
       locationRadiusKm,
       TIME_DEFAULTS.FINE_STEP_MINUTES,
-      satrecs,
+      satrecsFine,
     );
 
-    // ── Step 5: Final Sliding Window ─────────────────────────────────
     const fineEntries = Array.from(
       fineScoreMap,
       ([timestamp, coverageScore]) => ({
