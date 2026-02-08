@@ -12,7 +12,7 @@ export class VisibilityController {
 
     const telAvivCoords = { latitude: 32.0853, longitude: 34.7818 };
     const radiusKm = 100;
-    const timeFrameHours = 1;
+    const timeFrameHours = 11;
 
     console.log(
       `check between ${startDate.toISOString()} and ${endDate.toISOString()}`,
