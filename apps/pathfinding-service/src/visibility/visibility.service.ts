@@ -10,6 +10,9 @@ import {
 } from 'src/common/utils/geo-calculations.utils';
 import { TimeWindowScore } from 'src/common/types/timeWindowScore';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
+import Piscina from 'piscina';
+import { resolve } from 'path';
+import { filename } from './workers/coverage.worker';
 
 @Injectable()
 export class VisibilityService {
