@@ -32,7 +32,6 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
   }
-
   async calculateMaxCoverageTimeWindowOptimized(
     startDate: Date,
     endDate: Date,
@@ -140,6 +139,7 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
         coverageScore: bestCoarseScore,
       };
     }
+
     const paddingMs =
       TIME_DEFAULTS.PADDING_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
     const timeFrameMs = timeFrameHours * TIME_DEFAULTS.MS_IN_HOUR;
@@ -156,6 +156,9 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
 
     const fineStepMs =
       TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+
+    const promisesFine: Promise<Float64Array>[] = [];
+
     const fineScores = (await this.workerPool.run({
       startDate: fineStart,
       endDate: fineEnd,
