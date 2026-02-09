@@ -47,24 +47,53 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     const snappedEnd = new Date(
       Math.floor(endDate.getTime() / stepMs) * stepMs,
     );
+    const batchDurationMs = Math.ceil(
+      (snappedEnd.getTime() - snappedStart.getTime()) / this.numOfThreads,
+    );
 
     const reducedSatelliteData: ReducedSatelliteData[] =
       await this.fetchTleData();
 
+    const promisesCoarse: Promise<Float64Array>[] = [];
+    for (let i = 0; i < this.numOfThreads; i++) {
+      const batchStartDate = new Date(
+        snappedStart.getTime() + i * batchDurationMs,
+      );
+      const batchEndDate = new Date(
+        Math.min(
+          snappedEnd.getTime(),
+          batchStartDate.getTime() + batchDurationMs,
+        ),
+      );
+      promisesCoarse.push(
+        this.workerPool.run({
+          startDate: batchStartDate,
+          endDate: batchEndDate,
+          locationCenter,
+          locationRadiusKm,
+          stepMinutes: TIME_DEFAULTS.COARSE_STEP_MINUTES,
+          reducedSatelliteData,
+        }),
+      );
+    }
+    const resultsCoarse = (await Promise.all(promisesCoarse)) as Float64Array[];
+    const totalLengthCoarse = resultsCoarse.reduce(
+      (accumulate, current) => accumulate + current.length,
+      0,
+    );
+    const mergedCoarseScores = new Float64Array(totalLengthCoarse);
+
+    let offsetCoarse = 0;
+    for (const batch of resultsCoarse) {
+      mergedCoarseScores.set(batch, offsetCoarse);
+      offsetCoarse += batch.length;
+    }
+
     const coarseStepMs =
       TIME_DEFAULTS.COARSE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
 
-    const coarseScores = (await this.workerPool.run({
-      startDate: snappedStart,
-      endDate: snappedEnd,
-      locationCenter,
-      locationRadiusKm,
-      stepMinutes: TIME_DEFAULTS.COARSE_STEP_MINUTES,
-      reducedSatelliteData, // שולחים את המידע הגולמי
-    })) as Float64Array;
-
     const coarseEntries: TimeWindowScore[] = Array.from(
-      coarseScores,
+      mergedCoarseScores,
       (coverageScore, i) => ({
         startTime: new Date(snappedStart.getTime() + i * coarseStepMs),
         coverageScore,
