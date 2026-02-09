@@ -1,14 +1,14 @@
-import { resolve } from 'path';
 import { timeStepCoverageScore } from './coverage.logic';
 import { Coordinates } from '../../common/types/coordinates';
+import { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
 
 interface WorkerJobData {
   startDate: string | Date;
   endDate: string | Date;
-  locationCenter: any;
+  locationCenter: Coordinates;
   locationRadiusKm: number;
   stepMinutes: number;
-  reducedSatelliteData: any[];
+  reducedSatelliteData: ReducedSatelliteData[];
 }
 
 export default function (jobData: WorkerJobData) {
