@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { OrbitalClientService } from 'src/orbital-client/orbital-client.service';
 import { Coordinates } from 'src/common/types/coordinates';
 import { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
@@ -6,18 +6,22 @@ import { TimeWindowScore } from 'src/common/types/timeWindowScore';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 import Piscina from 'piscina';
 import { resolve } from 'path';
+import os from 'os';
 
 @Injectable()
-export class VisibilityService implements OnModuleInit {
+export class VisibilityService implements OnModuleInit, OnModuleDestroy {
   private workerPool: Piscina;
-
+  private readonly numOfThreads = 6; //dev
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
 
   onModuleInit() {
     this.workerPool = new Piscina({
       filename: resolve(__dirname, 'workers/coverage.worker.js'),
-      maxThreads: 4,
+      maxThreads: this.numOfThreads,
     });
+  }
+  onModuleDestroy() {
+    this.workerPool.destroy();
   }
   private async fetchTleData(): Promise<ReducedSatelliteData[]> {
     try {
