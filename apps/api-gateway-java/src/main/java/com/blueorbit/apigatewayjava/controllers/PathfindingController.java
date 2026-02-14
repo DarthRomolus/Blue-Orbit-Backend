@@ -1,8 +1,8 @@
-package controllers;
+package com.blueorbit.apigatewayjava.controllers;
 
 
-import dtos.VisibilityRequest;
-import services.PathfindingGatewayService;
+import com.blueorbit.apigatewayjava.dtos.VisibilityRequest;
+import com.blueorbit.apigatewayjava.services.PathfindingGatewayService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

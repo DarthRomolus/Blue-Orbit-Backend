@@ -1,4 +1,4 @@
-package dtos;
+package com.blueorbit.apigatewayjava.dtos;
 
 
 import lombok.Data;

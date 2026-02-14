@@ -1,4 +1,4 @@
-package config;
+package com.blueorbit.apigatewayjava.config;
 
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
