@@ -21,14 +21,19 @@ export class OrbitalController {
     ]);
     return this.orbitalService.allSatellitesData();
   }
-  @Get()
-  public async getAllSatellitesData(): Promise<SatelliteData[] | null> {
+  @Get() //dev
+  public async test(): Promise<SatelliteData[] | null> {
     return await this.orbitalService.allSatellitesData();
   }
-  @MessagePattern({ cmd: 'all-satellite-data' })
+  @MessagePattern({ cmd: 'all_satellite_data' })
   public async getAllSatellitesForRMQ(): Promise<
     ReducedSatelliteData[] | null
   > {
     return await this.orbitalService.reducedSatelliteInfo();
+  }
+
+  @MessagePattern({ cmd: 'get_full_satellites' })
+  public async getAllSatellitesData(): Promise<SatelliteData[] | null> {
+    return await this.orbitalService.allSatellitesData();
   }
 }
