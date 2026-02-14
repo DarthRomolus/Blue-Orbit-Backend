@@ -157,8 +157,6 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     const fineStepMs =
       TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
 
-    const promisesFine: Promise<Float64Array>[] = [];
-
     const fineScores = (await this.workerPool.run({
       startDate: fineStart,
       endDate: fineEnd,
