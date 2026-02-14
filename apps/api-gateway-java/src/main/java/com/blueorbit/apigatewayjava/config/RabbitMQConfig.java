@@ -11,10 +11,15 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String PATHFINDING_QUEUE = "pathfinding_queue";
-
+    public static final String ORBITAL_QUEUE = "orbital_queue"; // התור של Orbital
     @Bean
     public Queue pathfindingQueue() {
         return new Queue(PATHFINDING_QUEUE, false);
+    }
+
+    @Bean
+    public Queue orbitalQueue() {
+        return new Queue(ORBITAL_QUEUE, false);
     }
 
     @Bean
