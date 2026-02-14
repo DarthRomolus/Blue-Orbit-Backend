@@ -19,7 +19,7 @@ export class OrbitalClientService implements OnModuleInit {
   async getSatellitePosition(
     noradID: string,
   ): Promise<SatellitePositionGeodetic> {
-    const pattern = { cmd: 'satellite-position' };
+    const pattern = { cmd: 'satellite_position' };
     const payload = noradID;
     const observable$ = this.client.send(pattern, payload);
     const satellite: SatellitePositionGeodetic =
@@ -27,7 +27,7 @@ export class OrbitalClientService implements OnModuleInit {
     return satellite;
   }
   async getReducedAllSatelliteInfo(): Promise<ReducedSatelliteData[]> {
-    const pattern = { cmd: 'all-satellite-data' };
+    const pattern = { cmd: 'all_satellite_data' };
     const observable$ = this.client.send(pattern, {});
     const reducedAllSatelliteInfo: ReducedSatelliteData[] = await lastValueFrom(
       observable$,
