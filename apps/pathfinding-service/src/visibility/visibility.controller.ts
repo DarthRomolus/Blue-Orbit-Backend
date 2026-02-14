@@ -1,10 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { VisibilityService } from './visibility.service';
+import { Payload, MessagePattern } from '@nestjs/microservices';
 
 @Controller('visibility')
 export class VisibilityController {
   constructor(private readonly visibilityService: VisibilityService) {}
-
   @Get('test2')
   async runSanityTest2() {
     const startDate = new Date('2026-02-08T16:50:02.200Z');
@@ -35,4 +35,17 @@ export class VisibilityController {
     };
   }
   //---------------------------------------------DEV------------------------------------
+  @MessagePattern({ cmd: 'calculate_coverage' })
+  async getCoverage(@Payload() data: any) {
+    console.log('Received calculation request from Gateway via RMQ');
+
+    // קריאה לפונקציה האמיתית עם המרת התאריכים (מחרוזת לאובייקט Date)
+    return this.visibilityService.calculateMaxCoverageTimeWindowOptimized(
+      new Date(data.startDate),
+      new Date(data.endDate),
+      data.locationCenter,
+      data.locationRadiusKm,
+      data.timeFrameHours,
+    );
+  }
 }
