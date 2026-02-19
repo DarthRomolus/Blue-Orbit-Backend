@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 
 @Injectable()
@@ -11,12 +11,13 @@ export class CelestrackService {
       const response = await axios.get(url);
       return response.data;
     } catch (error) {
-      if ((error = axios.AxiosError)) {
-        console.error('axios error:', error);
-      } else {
-        console.error('different error', error);
+      if (axios.isAxiosError(error)) {
+        throw new HttpException(
+          `Failed to fetch TLE data for group ${group}`,
+          HttpStatus.BAD_GATEWAY,
+        );
       }
-      return error;
+      throw error;
     }
   }
 }

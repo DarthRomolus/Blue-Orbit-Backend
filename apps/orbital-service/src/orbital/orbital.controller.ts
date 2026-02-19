@@ -1,23 +1,39 @@
 import { Controller, Post } from '@nestjs/common';
 import { OrbitalService } from './orbital.service';
 import { Get } from '@nestjs/common';
-import { SatelliteData } from '@generated/orbital-client';
+import type { SatelliteData } from 'src/common/types/satelliteData';
 import { CELESTRACK_GROUPS } from 'src/common/constants/celestrak.constants';
+import { MessagePattern } from '@nestjs/microservices';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
 
 @Controller('satellites')
 export class OrbitalController {
   constructor(private readonly orbitalService: OrbitalService) {}
 
   @Post('process')
-  async getTLE(): Promise<SatelliteData[]> {
-    await this.orbitalService.processTleData(CELESTRACK_GROUPS.GLOBALSTAR);
-    await this.orbitalService.processTleData(CELESTRACK_GROUPS.IRIDIUM);
-    await this.orbitalService.processTleData(CELESTRACK_GROUPS.ONEWEB);
-    await this.orbitalService.processTleData(CELESTRACK_GROUPS.QIANFAN);
-    return await this.orbitalService.processTleData(CELESTRACK_GROUPS.ORBCOMM);
+  public async getTLE(): Promise<SatelliteData[] | null> {
+    await Promise.all([
+      this.orbitalService.processTleData(CELESTRACK_GROUPS.GLOBALSTAR),
+      this.orbitalService.processTleData(CELESTRACK_GROUPS.IRIDIUM),
+      this.orbitalService.processTleData(CELESTRACK_GROUPS.ONEWEB),
+      this.orbitalService.processTleData(CELESTRACK_GROUPS.QIANFAN),
+      this.orbitalService.processTleData(CELESTRACK_GROUPS.ORBCOMM),
+    ]);
+    return this.orbitalService.allSatellitesData();
   }
-  @Get()
-  async getAllSatellitesData(): Promise<SatelliteData[] | null> {
+  @Get() //dev
+  public async test(): Promise<SatelliteData[] | null> {
+    return await this.orbitalService.allSatellitesData();
+  }
+  @MessagePattern({ cmd: 'all_satellite_data' })
+  public async getAllSatellitesForRMQ(): Promise<
+    ReducedSatelliteData[] | null
+  > {
+    return await this.orbitalService.reducedSatelliteInfo();
+  }
+
+  @MessagePattern({ cmd: 'get_full_satellites' })
+  public async getAllSatellitesData(): Promise<SatelliteData[] | null> {
     return await this.orbitalService.allSatellitesData();
   }
 }
