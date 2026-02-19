@@ -21,7 +21,7 @@ export function calculateEffectiveRadius(
   const coverageRadiusKm = angleForRadiusInRadians * earthRadius;
   return coverageRadiusKm;
 }
-function getDistanceKm(
+export function getGreatCircleDistanceKm(
   satelliteCoverageCenter: Coordinates,
   locationCenter: Coordinates,
 ): number {
@@ -81,7 +81,7 @@ export function calculateCoverageScore(
   satelliteCoverageCenter: Coordinates,
   satelliteRadiusKm: number,
 ): number {
-  const distanceBetweenCenters = getDistanceKm(
+  const distanceBetweenCenters = getGreatCircleDistanceKm(
     satelliteCoverageCenter,
     locationCenter,
   );
