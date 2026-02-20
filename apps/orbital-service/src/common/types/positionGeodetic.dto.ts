@@ -1,4 +1,4 @@
-export type PositionGeodatic = {
+export type SatellitePositionGeodetic = {
   longitude: number;
   latitude: number;
   height: number;

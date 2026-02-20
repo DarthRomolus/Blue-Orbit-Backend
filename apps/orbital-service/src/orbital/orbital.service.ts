@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { CelestrackService } from 'src/celestrack/celestrack.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
+
 @Injectable()
 export class OrbitalService {
   constructor(
@@ -30,7 +32,10 @@ export class OrbitalService {
     return await this.databaseService.getAllSatellites();
   }
 
-  async allSatellitesData(): Promise<SatelliteData[] | null> {
+  async allSatellitesData(): Promise<SatelliteData[]> {
     return await this.databaseService.getAllSatellites();
+  }
+  async reducedSatelliteInfo(): Promise<ReducedSatelliteData[]> {
+    return await this.databaseService.getReducedAllSatelliteInfo();
   }
 }
