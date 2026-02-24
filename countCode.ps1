@@ -21,26 +21,17 @@ $results = Get-ChildItem -Recurse -File |
     } | 
     ForEach-Object {
         try {
-            # קריאת כל השורות מהקובץ
-            $allLines = Get-Content $_.FullName -ErrorAction SilentlyContinue
-            
-            if ($null -ne $allLines) {
-                # סינון שורות ריקות ושורות שמתחילות בהערה (מתאים ל-Java, JS, TS)
-                $codeLines = $allLines | Where-Object { 
-                    $_.Trim() -ne "" -and # לא שורה ריקה
-                    -not $_.Trim().StartsWith("//") -and # לא הערה של שורה אחת
-                    -not $_.Trim().StartsWith("/*") -and # לא תחילת הערת בלוק
-                    -not $_.Trim().StartsWith("*")      # לא המשך של הערת בלוק
-                }
-
-                $count = ($codeLines | Measure-Object).Count
-                
+            $content = Get-Content $_.FullName -ErrorAction SilentlyContinue
+            if ($null -ne $content) {
+                $lines = ($content | Measure-Object -Line).Lines
                 [PSCustomObject]@{
                     Language = $extensionMap[$_.Extension]
-                    Lines    = $count
+                    Lines    = $lines
                 }
             }
-        } catch { }
+        } catch {
+            # Skip locked files
+        }
     }
 
 # Display the summary table
