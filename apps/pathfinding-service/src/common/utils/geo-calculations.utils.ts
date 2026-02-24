@@ -4,6 +4,8 @@ import {
 } from 'src/common/constants/equation.constants';
 import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 import type { Coordinates } from '../types/coordinates';
+import type { State } from '../../pathfinding/graph/state';
+
 export function calculateEffectiveRadius(
   satelliteAltitudeKm: number,
   minElevationAngle: number = ANGLES_DEFAULTS.MINIMUM_VISIBILITY_ANGLE,
@@ -100,4 +102,60 @@ export function calculateCoverageScore(
     locationRadiusKm,
     satelliteRadiusKm,
   );
+}
+/**
+ * פותר את בעיית הגאודזיה הישירה (Direct Geodesic Problem) על כדור כמעט מושלם.
+ * מחשב את קואורדינטות היעד בהינתן נקודת התחלה, מרחק וכיוון.
+ * * @param lat - קו רוחב התחלתי (מעלות)
+ * @param lon - קו אורך התחלתי (מעלות)
+ * @param distanceKm - המרחק שעברנו (קילומטרים)
+ * @param bearingDegrees - כיוון התנועה (מעלות, 0 = צפון, 90 = מזרח)
+ * @returns אובייקט Coordinates עם קו הרוחב והאורך החדשים
+ */
+export function calculateDestination(
+  state: State,
+  bearingDegrees: number,
+  distanceKm: number,
+): Coordinates {
+  // 1. המרה ממעלות לרדיאנים
+  const lat1 = toRadians(state.latitude);
+  const lon1 = toRadians(state.longitude);
+  const brng = toRadians(bearingDegrees);
+
+  // המרחק הזוויתי (Angular distance)
+  const angularDistance =
+    distanceKm / VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
+
+  // 2. חישוב קו הרוחב החדש (Latitude)
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(brng),
+  );
+
+  // 3. חישוב קו האורך החדש (Longitude)
+  let lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
+    );
+
+  // 4. נרמול קו האורך - קריטי!
+  // מוודא שאם חצינו את קו התאריך הבינלאומי (180 מעלות), המספר "יתהפך" נכון
+  // ויישאר תמיד בטווח שבין -180 ל-180.
+  lon2 = ((lon2 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+
+  // 5. המרה חזרה למעלות
+  return {
+    latitude: toDegrees(lat2),
+    longitude: toDegrees(lon2),
+  };
+}
+
+function toRadians(degrees: number): number {
+  return degrees * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
+}
+
+function toDegrees(radians: number): number {
+  return radians * ANGLES_DEFAULTS.RADIANS_TO_DEGREES;
 }
