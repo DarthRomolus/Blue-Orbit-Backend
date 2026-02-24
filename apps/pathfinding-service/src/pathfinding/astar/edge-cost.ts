@@ -2,12 +2,10 @@ import * as satellite from 'satellite.js';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { State } from '../graph/state';
 import { calculateSatelliteScore } from '../satelliteScore/satellite-scorer';
-import { getGreatCircleDistanceKm } from 'src/common/utils/geo-calculations.utils';
 
 export function edgeCostFunction(
   currentState: State,
   satellites: satellite.SatRec[],
-  lastState: State,
 ) {
   const satelliteScores = satellites
     .map((satrec) =>
@@ -21,7 +19,7 @@ export function edgeCostFunction(
     )
     .filter((score) => score !== null)
     .sort((a, b) => b - a)
-    .slice(0, PATHFINDING_DEFAULTS.TOP_SATELLITES_COUNT); // top 4
+    .slice(0, PATHFINDING_DEFAULTS.TOP_SATELLITES_COUNT);
 
   const score1 = satelliteScores[0] ?? 0;
   const score2 = satelliteScores[1] ?? 0;
@@ -31,10 +29,10 @@ export function edgeCostFunction(
 
   const penalty = 1 - avgSignalQuality;
 
-  const distance = getGreatCircleDistanceKm(
-    { latitude: currentState.latitude, longitude: currentState.longitude },
-    { latitude: lastState.latitude, longitude: lastState.longitude },
-  );
+  const distance = PATHFINDING_DEFAULTS.DISTANCE_TO_NEXT_NODE_KM;
 
-  return distance * (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty);
+  return (
+    distance *
+    (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty)
+  );
 }
