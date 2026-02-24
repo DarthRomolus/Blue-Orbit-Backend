@@ -12,3 +12,7 @@ export type ChildrenStates = {
   straight: State;
   right: State;
 };
+export type StatesList = {
+  state: State;
+  Fcost: number;
+};
