@@ -3,18 +3,24 @@ import { ChildrenStates, State } from './state';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 
-// פונקציית עזר לשמירת זווית חוקית במצפן (0-360)
+/**
+ * Normalizes the bearing to be within the range [0, 360).
+ */
 function normalizeBearing(bearing: number): number {
   return ((bearing % 360) + 360) % 360;
 }
 
+/**
+ * Builds the children states for the current state.
+ * 
+ * @param currentState - The current state.
+ * @returns The children states.
+ */
 export function nodesBuilder(currentState: State): ChildrenStates {
   const distanceKm = PATHFINDING_DEFAULTS.DISTANCE_TO_NEXT_NODE_KM;
   const nextTime = new Date(
     currentState.time.getTime() + PATHFINDING_DEFAULTS.TIME_STEP_SECONDS * 1000,
   );
-
-  // 2. חישוב הקואורדינטות של 3 היעדים בעזרת הכיוון הממוצע (15 מעלות)
   const leftCoords = calculateDestination(
     currentState,
 
@@ -36,14 +42,13 @@ export function nodesBuilder(currentState: State): ChildrenStates {
 
   const straightCoords = calculateDestination(
     currentState,
-    currentState.bearingDegrees, // אין שינוי כיוון
+    currentState.bearingDegrees, 
     distanceKm,
   );
 
-  // 3. בניית הילדים כ*אובייקטים חדשים לחלוטין* תוך העתקת שאר הנתונים
   return {
     left: {
-      ...currentState, // מעתיק את כל הנתונים (כמו גובה) לאובייקט חדש
+      ...currentState, 
       latitude: leftCoords.latitude,
       longitude: leftCoords.longitude,
       bearingDegrees: normalizeBearing(

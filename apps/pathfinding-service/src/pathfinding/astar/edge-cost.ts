@@ -3,6 +3,9 @@ import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants
 import { State } from '../graph/state';
 import { calculateSatelliteScore } from '../satelliteScore/satellite-scorer';
 
+/**
+ * Calculates the cost of moving from the current state to the next state.
+ */
 export function edgeCostFunction(
   currentState: State,
   satellites: satellite.SatRec[],
