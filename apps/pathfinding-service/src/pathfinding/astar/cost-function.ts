@@ -8,15 +8,15 @@ import * as satellite from 'satellite.js';
 calculates f cost of every node
 */
 export function calculateNodeScores(
-  ChildNodeState: State,
+  childNodeState: State,
   goal: Coordinates,
   satellites: satellite.SatRec[],
 ) {
-  const hScore = heuristic(ChildNodeState, goal);
+  const hScore = heuristic(childNodeState, goal);
 
-  const stepCost = edgeCostFunction(ChildNodeState, satellites);
+  const stepCost = edgeCostFunction(childNodeState, satellites);
 
-  const gScore = ChildNodeState.costToPoint + stepCost;
+  const gScore = childNodeState.costToPoint + stepCost;
 
   const fScore = gScore + hScore;
 
