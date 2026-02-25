@@ -36,7 +36,7 @@ function calculateElevationAngle(
  */
 function calculateSigmoidScore(elevationDegrees: number): number {
   const midPointDegrees = PATHFINDING_DEFAULTS.SIGMOID_MIDPOINT_DEG;
-  const steepness = PATHFINDING_DEFAULTS.SIGMOID_STEEPNESS; 
+  const steepness = PATHFINDING_DEFAULTS.SIGMOID_STEEPNESS;
 
   const exponent = -steepness * (elevationDegrees - midPointDegrees);
   const signalQuality = 1 / (1 + Math.exp(exponent));
@@ -46,7 +46,7 @@ function calculateSigmoidScore(elevationDegrees: number): number {
 
 /**
  * Calculates the satellite score for the given aircraft position and satellite.
- * 
+ *
  * @param aircraftLat - The latitude of the aircraft.
  * @param aircraftLon - The longitude of the aircraft.
  * @param aircraftAltKm - The altitude of the aircraft in kilometers.
