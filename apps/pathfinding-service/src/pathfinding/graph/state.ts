@@ -7,12 +7,12 @@ export type State = {
   costToPoint: number;
   parentNode: State | null;
 };
-export type ChildrenStates = {
+export type ChildrenGroup = {
   left: State;
   straight: State;
   right: State;
 };
-export type StatesList = {
+export type ScoredState = {
   state: State;
-  Fcost: number;
+  fCost: number;
 };

@@ -1,18 +1,24 @@
 import { Coordinates } from 'src/common/types/coordinates';
-import type { State, StatesList, ChildrenStates } from '../graph/state';
+import type { State, ScoredState, ChildrenGroup } from '../graph/state';
 import * as satellite from 'satellite.js';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { nodesBuilder } from '../graph/nodes-builder';
 import { calculateNodeScores } from './cost-function';
+import { propagateSatellitesToEcf } from './edge-cost';
 import { MinHeap } from './min-heap';
 import { getGreatCircleDistanceKm } from 'src/common/utils/geo-calculations.utils';
+import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 
 /**
  * Generates a unique string key for a state to avoid revisiting.
- * Rounds coordinates to 4 decimal places (~11m precision) and includes bearing.
+ * Rounds coordinates to 2 decimal places (~1.1km) and buckets bearing by 15°.
  */
 function stateKey(s: State): string {
-  return `${s.latitude.toFixed(4)},${s.longitude.toFixed(4)},${s.bearingDegrees}`;
+  const lat = s.latitude.toFixed(2);
+  const lon = s.longitude.toFixed(2);
+  const bucketSize = PATHFINDING_DEFAULTS.BEARING_BUCKET_SIZE_DEG;
+  const bearingBucket = Math.round(s.bearingDegrees / bucketSize) * bucketSize;
+  return `${lat},${lon},${bearingBucket}`;
 }
 
 /**
@@ -34,21 +40,24 @@ function reconstructPath(goalState: State): State[] {
 export function astarEngine(
   initialState: State,
   goal: Coordinates,
-  satellites: satellite.SatRec[],
+  satellites: SatelliteTle[],
 ) {
   const openList = new MinHeap();
   const closedSet = new Set<string>();
+  const ecfCache = new Map<number, satellite.EcfVec3<number>[]>();
   let iterations = 0;
 
   openList.push({
     state: { ...initialState, costToPoint: 0, parentNode: null },
-    Fcost: 0,
+    fCost: 0,
   });
 
   while (
     openList.size > 0 &&
     iterations <= PATHFINDING_DEFAULTS.MAX_ITERATIONS
   ) {
+    iterations++;
+
     const minNode = openList.pop();
     if (!minNode) break;
 

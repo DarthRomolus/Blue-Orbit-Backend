@@ -1,30 +1,30 @@
-import type { StatesList } from '../graph/state';
+import type { ScoredState } from '../graph/state';
 
 /**
- * Binary Min-Heap keyed on Fcost.
+ * Binary Min-Heap keyed on fCost.
  *
  * - push()    O(log n)
- * - pop()     O(log n)  — returns the node with the LOWEST Fcost
+ * - pop()     O(log n)  — returns the node with the LOWEST fCost
  * - peek()    O(1)
  * - size      O(1)
  */
 export class MinHeap {
-  private heap: StatesList[] = [];
+  private heap: ScoredState[] = [];
 
   get size(): number {
     return this.heap.length;
   }
 
-  peek(): StatesList | undefined {
+  peek(): ScoredState | undefined {
     return this.heap[0];
   }
 
-  push(node: StatesList): void {
+  push(node: ScoredState): void {
     this.heap.push(node);
     this.bubbleUp(this.heap.length - 1);
   }
 
-  pop(): StatesList | undefined {
+  pop(): ScoredState | undefined {
     if (this.heap.length === 0) return undefined;
 
     const min = this.heap[0];
@@ -42,7 +42,7 @@ export class MinHeap {
     while (index > 0) {
       const parentIndex = Math.floor((index - 1) / 2);
 
-      if (this.heap[parentIndex].Fcost <= this.heap[index].Fcost) break;
+      if (this.heap[parentIndex].fCost <= this.heap[index].fCost) break;
 
       [this.heap[parentIndex], this.heap[index]] = [this.heap[index], this.heap[parentIndex]];
       index = parentIndex;
@@ -57,11 +57,11 @@ export class MinHeap {
       const right = 2 * index + 2;
       let smallest = index;
 
-      if (left < length && this.heap[left].Fcost < this.heap[smallest].Fcost) {
+      if (left < length && this.heap[left].fCost < this.heap[smallest].fCost) {
         smallest = left;
       }
 
-      if (right < length && this.heap[right].Fcost < this.heap[smallest].Fcost) {
+      if (right < length && this.heap[right].fCost < this.heap[smallest].fCost) {
         smallest = right;
       }
 
