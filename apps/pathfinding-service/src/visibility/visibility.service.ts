@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { OrbitalClientService } from 'src/orbital-client/orbital-client.service';
 import { Coordinates } from 'src/common/types/coordinates';
-import { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
+import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 import { TimeWindowScore } from 'src/common/types/timeWindowScore';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 import Piscina from 'piscina';
@@ -23,9 +23,9 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy() {
     this.workerPool.destroy();
   }
-  private async fetchTleData(): Promise<ReducedSatelliteData[]> {
+  private async fetchTleData(): Promise<SatelliteTle[]> {
     try {
-      const reducedSatelliteData: ReducedSatelliteData[] =
+      const reducedSatelliteData: SatelliteTle[] =
         await this.orbitalClientService.getReducedAllSatelliteInfo();
       return reducedSatelliteData;
     } catch (error) {
@@ -50,7 +50,7 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
       (snappedEnd.getTime() - snappedStart.getTime()) / this.numOfThreads,
     );
 
-    const reducedSatelliteData: ReducedSatelliteData[] =
+    const reducedSatelliteData: SatelliteTle[] =
       await this.fetchTleData();
 
     const promisesCoarse: Promise<Float64Array>[] = [];

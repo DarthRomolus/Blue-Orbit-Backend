@@ -2,7 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import type { SatellitePositionGeodetic } from 'src/common/types/satellite';
-import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
+import type { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
@@ -26,10 +26,10 @@ export class OrbitalClientService implements OnModuleInit {
       await lastValueFrom(observable$);
     return satellite;
   }
-  async getReducedAllSatelliteInfo(): Promise<ReducedSatelliteData[]> {
+  async getReducedAllSatelliteInfo(): Promise<SatelliteTle[]> {
     const pattern = { cmd: 'all_satellite_data' };
     const observable$ = this.client.send(pattern, {});
-    const reducedAllSatelliteInfo: ReducedSatelliteData[] = await lastValueFrom(
+    const reducedAllSatelliteInfo: SatelliteTle[] = await lastValueFrom(
       observable$,
       { defaultValue: null },
     );
