@@ -67,10 +67,8 @@ export function edgeCostFunction(
 
   const penalty = 1 - avgSignalQuality;
 
-  const distance = PATHFINDING_DEFAULTS.DISTANCE_TO_NEXT_NODE_KM;
-
   return (
-    distance *
+    distanceKm *
     (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty)
   );
 }

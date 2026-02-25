@@ -83,9 +83,21 @@ export function astarEngine(
     }
     closedSet.add(key);
 
-    const childrenStates: ChildrenStates = nodesBuilder(currentState);
+    const childrenStates: ChildrenGroup = nodesBuilder(currentState, distanceToGoal);
 
-    const children = [childrenStates.left, childrenStates.right, childrenStates.straight];
+    const children = [
+      childrenStates.left,
+      childrenStates.right,
+      childrenStates.straight,
+    ];
+
+    // All 3 children share the same timestamp — propagate SGP4 once and cache
+    const childTime = children[0].time.getTime();
+    let ecfPositions = ecfCache.get(childTime);
+    if (!ecfPositions) {
+      ecfPositions = propagateSatellitesToEcf(satellites, children[0].time);
+      ecfCache.set(childTime, ecfPositions);
+    }
 
     for (const child of children) {
       child.parentNode = currentState;
@@ -93,16 +105,17 @@ export function astarEngine(
       const childKey = stateKey(child);
       if (closedSet.has(childKey)) continue;
 
-      const scores = calculateNodeScores(child, goal, satellites);
+      const timeDeltaSeconds = (child.time.getTime() - currentState.time.getTime()) / 1000;
+      const distanceKm = (PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / 3600) * timeDeltaSeconds;
+
+      const scores = calculateNodeScores(child, goal, ecfPositions, distanceKm);
       child.costToPoint = scores.gScore;
 
       openList.push({
         state: child,
-        Fcost: scores.fScore,
+        fCost: scores.fScore,
       });
     }
-
-    iterations++;
   }
 
   return {
