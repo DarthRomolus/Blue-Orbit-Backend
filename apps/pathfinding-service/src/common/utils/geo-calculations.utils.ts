@@ -6,6 +6,48 @@ import { ANGLES_DEFAULTS } from 'src/common/constants/angles.constants';
 import type { Coordinates } from '../types/coordinates';
 import type { State } from '../../pathfinding/graph/state';
 
+/**
+ * ממיר את מסלול הטיסה לפורמט GeoJSON תקני להצגה על מפה
+ */
+export function pathToGeoJSON(path: State[]) {
+  if (!path || path.length === 0) return null;
+
+  // חילוץ הקואורדינטות - שים לב שחייבים להפוך לסדר של [Longitude, Latitude]
+  const coordinates = path.map((state) => [state.longitude, state.latitude]);
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {
+          name: 'Blue Orbit Flight Path',
+          stroke: '#0000ff', // צבע כחול לקו
+          'stroke-width': 4, // עובי הקו
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: coordinates,
+        },
+      },
+      // נקודת התחלה
+      {
+        type: 'Feature',
+        properties: { markerType: 'Start' },
+        geometry: { type: 'Point', coordinates: coordinates[0] },
+      },
+      // נקודת סיום
+      {
+        type: 'Feature',
+        properties: { markerType: 'End' },
+        geometry: {
+          type: 'Point',
+          coordinates: coordinates[coordinates.length - 1],
+        },
+      },
+    ],
+  };
+}
 export function calculateEffectiveRadius(
   satelliteAltitudeKm: number,
   minElevationAngle: number = ANGLES_DEFAULTS.MINIMUM_VISIBILITY_ANGLE,
