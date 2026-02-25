@@ -8,18 +8,8 @@ function calculateElevationAngle(
   aircraftLat: number,
   aircraftLon: number,
   aircraftAltKm: number,
-  satrec: satellite.SatRec,
-  date: Date,
+  satelliteEcf: satellite.EcfVec3<number>,
 ): number | null {
-  const positionAndVelocity = satellite.propagate(satrec, date);
-  if (!positionAndVelocity) return null;
-
-  const positionEci = positionAndVelocity.position as satellite.EciVec3<number>;
-  if (!positionEci) return null;
-
-  const gmst = satellite.gstime(date);
-  const satelliteEcf = satellite.eciToEcf(positionEci, gmst);
-
   const observerGd = {
     longitude: satellite.degreesToRadians(aircraftLon),
     latitude: satellite.degreesToRadians(aircraftLat),
@@ -58,15 +48,13 @@ export function calculateSatelliteScore(
   aircraftLat: number,
   aircraftLon: number,
   aircraftAltKm: number,
-  satrec: satellite.SatRec,
-  date: Date,
+  satelliteEcf: satellite.EcfVec3<number>,
 ): number | null {
   const elevationAngle = calculateElevationAngle(
     aircraftLat,
     aircraftLon,
     aircraftAltKm,
-    satrec,
-    date,
+    satelliteEcf,
   );
 
   if (elevationAngle === null) return null;
