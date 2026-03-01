@@ -1,10 +1,4 @@
 export const PATHFINDING_DEFAULTS = {
-  /** Time step in seconds between node expansions */
-  TIME_STEP_SECONDS: 10,
-
-  /** Standard rate turn: 3 degrees per second */
-  TURN_RATE_DEG_PER_SEC: 3,
-
   /** Default aircraft cruise speed in km/h */
   DEFAULT_SPEED_KMH: 700,
 
@@ -35,11 +29,17 @@ export const PATHFINDING_DEFAULTS = {
   /** Distance threshold (in km) to switch from fast to fine time steps */
   DYNAMIC_STEP_DISTANCE_THRESHOLD_KM: 500,
 
+  /** Fine time step in seconds when close to goal */
+  DYNAMIC_STEP_FINE_SECONDS: 10,
+
   /** Fast time step in seconds when far from goal */
-  DYNAMIC_STEP_FAST_SECONDS: 60,
+  DYNAMIC_STEP_FAST_SECONDS: 120,
 
   /** Size of the bearing bucket in degrees for state deduplication */
   BEARING_BUCKET_SIZE_DEG: 15,
+
+  /** Minimum distance from the satellite in km - 1700km is the average radius of LEO satellites footprint with elevation angle of 25 degrees */
+  MIN_SATELLITE_DISTANCE_FROM_PLANE_KM: 1700,
 
   // --- MICRO MANEUVERS (Close range, 10s steps) ---
   /** Average bearing change during a micro left turn */
@@ -51,15 +51,15 @@ export const PATHFINDING_DEFAULTS = {
   /** Final bearing change after a micro right turn */
   MICRO_RIGHT_TURN_STATE_BEARING_CHANGE: 30,
 
-  // --- MACRO MANEUVERS (Long range, 60s steps) ---
+  // --- MACRO MANEUVERS (Long range, 120s steps) ---
   /** Average bearing change during a macro left turn */
-  MACRO_AVG_LEFT_TURN_BEARING_CHANGE: -2.5,
+  MACRO_AVG_LEFT_TURN_BEARING_CHANGE: -5,
   /** Average bearing change during a macro right turn */
-  MACRO_AVG_RIGHT_TURN_BEARING_CHANGE: 2.5,
+  MACRO_AVG_RIGHT_TURN_BEARING_CHANGE: 5,
   /** Final bearing change after a macro left turn */
-  MACRO_LEFT_TURN_STATE_BEARING_CHANGE: -5,
+  MACRO_LEFT_TURN_STATE_BEARING_CHANGE: -10,
   /** Final bearing change after a macro right turn */
-  MACRO_RIGHT_TURN_STATE_BEARING_CHANGE: 5,
+  MACRO_RIGHT_TURN_STATE_BEARING_CHANGE: 10,
 
   /**
    * Weighted A* heuristic multiplier (ε).

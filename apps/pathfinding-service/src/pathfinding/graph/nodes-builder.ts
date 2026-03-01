@@ -21,14 +21,12 @@ export function nodesBuilder(
   currentState: State,
   distanceToGoalKm: number,
 ): ChildrenGroup {
-  // Dynamic Step Size Logic
   const isFar =
     distanceToGoalKm > PATHFINDING_DEFAULTS.DYNAMIC_STEP_DISTANCE_THRESHOLD_KM;
   const timeStepSeconds = isFar
     ? PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS
-    : PATHFINDING_DEFAULTS.TIME_STEP_SECONDS;
+    : PATHFINDING_DEFAULTS.DYNAMIC_STEP_FINE_SECONDS;
 
-  // Distance = Speed * Time
   const speedKmPerSec = PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / 3600;
   const distanceKm = speedKmPerSec * timeStepSeconds;
 
