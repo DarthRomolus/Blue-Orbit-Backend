@@ -2,23 +2,21 @@ import * as satellite from 'satellite.js';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { State } from '../graph/state';
 import { calculateSatelliteScore } from '../satelliteScore/satellite-scorer';
-import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 
 /**
- * Parses TLE data and propagates all satellites to the given time,
- * returning their ECF positions. This is the heavy SGP4 work —
- * call once per timestamp and reuse for all children at that time.
+ * Propagates pre-parsed satellite records to the given time,
+ * returning their ECF positions. Accepts SatRec[] (already parsed)
+ * to avoid redundant twoline2satrec calls.
  */
 export function propagateSatellitesToEcf(
-  reducedSatelliteData: SatelliteTle[],
+  satrecs: satellite.SatRec[],
   time: Date,
 ): satellite.EcfVec3<number>[] {
   const gmst = satellite.gstime(time);
   const ecfPositions: satellite.EcfVec3<number>[] = [];
 
-  for (const data of reducedSatelliteData) {
+  for (const satrec of satrecs) {
     try {
-      const satrec = satellite.twoline2satrec(data.line1, data.line2);
       const positionAndVelocity = satellite.propagate(satrec, time);
 
       if (!positionAndVelocity) continue;
@@ -30,7 +28,7 @@ export function propagateSatellitesToEcf(
       const ecf = satellite.eciToEcf(positionEci, gmst);
       ecfPositions.push(ecf);
     } catch {
-      // Skip satellites with invalid TLE data
+      // Skip satellites with propagation errors
     }
   }
 

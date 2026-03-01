@@ -42,6 +42,16 @@ export function astarEngine(
   goal: Coordinates,
   satellites: SatelliteTle[],
 ) {
+  // Pre-parse all TLE strings into SatRec objects ONCE (eliminates millions of redundant parses)
+  const satrecs: satellite.SatRec[] = [];
+  for (const sat of satellites) {
+    try {
+      satrecs.push(satellite.twoline2satrec(sat.line1, sat.line2));
+    } catch {
+      // Skip invalid TLEs
+    }
+  }
+
   const openList = new MinHeap();
   const closedSet = new Set<string>();
   const ecfCache = new Map<number, satellite.EcfVec3<number>[]>();
@@ -91,11 +101,10 @@ export function astarEngine(
       childrenStates.straight,
     ];
 
-    // All 3 children share the same timestamp — propagate SGP4 once and cache
     const childTime = children[0].time.getTime();
     let ecfPositions = ecfCache.get(childTime);
     if (!ecfPositions) {
-      ecfPositions = propagateSatellitesToEcf(satellites, children[0].time);
+      ecfPositions = propagateSatellitesToEcf(satrecs, children[0].time);
       ecfCache.set(childTime, ecfPositions);
     }
 
