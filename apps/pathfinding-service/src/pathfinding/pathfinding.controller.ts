@@ -31,7 +31,7 @@ export class PathfindingController {
       latitude: 32.0853,
       longitude: 34.7818,
       altitude: 10000,
-      bearingDegrees: 318,
+      bearingDegrees: 115,
       time: new Date('2026-02-25T12:00:00.000Z'),
       costToPoint: 0,
       parentNode: null,
@@ -46,14 +46,17 @@ export class PathfindingController {
       latitude: 40.7,
       longitude: -74,
     };
-
+    const goal3 = {
+      latitude: -33,
+      longitude: 151,
+    };
     // נניח שכרגע מערך הלוויינים ריק לבדיקה בסיסית של קינמטיקה
     const satellites = [];
 
     // 3. הרצת המנוע
     const result = await this.pathfindingService.calculateOptimalPath(
       startState,
-      goal2,
+      goal3,
     );
 
     // 4. החזרת התשובה כולל ה-GeoJSON
