@@ -10,8 +10,14 @@ function normalizeBearing(bearing: number): number {
 }
 
 /**
- * Builds the children states for the current state.
- * Uses a dynamic step size: 60 seconds if far from goal, 10 seconds if close.
+ * Builds the children states for the current state (Hybrid A*).
+ *
+ * The actual State bearings are kept at FULL PRECISION for accurate physics.
+ * The bearing bucketing (15° grid) happens ONLY in the stateKey() function
+ * inside astar-engine.ts for closedSet deduplication.
+ *
+ * This separation between Search Space (coarse) and Action Space (precise)
+ * is the core principle of Hybrid A*.
  *
  * @param currentState - The current state.
  * @param distanceToGoalKm - Distance from current state to the goal.
@@ -48,8 +54,8 @@ export function nodesBuilder(
     ? PATHFINDING_DEFAULTS.MACRO_RIGHT_TURN_STATE_BEARING_CHANGE
     : PATHFINDING_DEFAULTS.MICRO_RIGHT_TURN_STATE_BEARING_CHANGE;
 
-  // Turn logic: calculate intermediate position using average bearing,
-  // then set the final state bearing to the full turn amount.
+  // Position is calculated using the average bearing during the turn arc.
+  // The final state bearing is the full turn amount (precise, not snapped).
   const leftCoords = calculateDestination(
     currentState,
     normalizeBearing(currentState.bearingDegrees + avgLeftTurn),
