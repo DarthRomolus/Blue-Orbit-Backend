@@ -38,6 +38,8 @@ export const PATHFINDING_DEFAULTS = {
   /** Size of the bearing bucket in degrees for state deduplication */
   BEARING_BUCKET_SIZE_DEG: 15,
 
+  /** Represents about 1770KM in   */
+  MAX_DEGRESS_DISTANCE: 16,
   /** Minimum distance from the satellite in km - 1700km is the average radius of LEO satellites footprint with elevation angle of 25 degrees */
   MIN_SATELLITE_DISTANCE_FROM_PLANE_KM: 1700,
 
