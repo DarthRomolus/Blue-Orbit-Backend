@@ -38,30 +38,57 @@ export function propagateSatellitesToEcf(
 /**
  * Calculates the cost of traversing an edge, given pre-computed
  * satellite ECF positions for the child's timestamp.
+ *
+ * Uses a 3D ECF bounding box to skip the expensive ecfToLookAngles
+ * trigonometry for satellites that are obviously too far away.
  */
 export function edgeCostFunction(
   currentState: State,
   satelliteEcfPositions: satellite.EcfVec3<number>[],
   distanceKm: number,
 ) {
-  const satelliteScores = satelliteEcfPositions
-    .map((ecf) =>
-      calculateSatelliteScore(
-        currentState.latitude,
-        currentState.longitude,
-        currentState.altitude,
-        ecf,
-      ),
-    )
-    .filter((score) => score !== null)
-    .sort((a, b) => b - a)
-    .slice(0, PATHFINDING_DEFAULTS.TOP_SATELLITES_COUNT);
+  // Convert plane to ECF once per node (geodeticToEcf doesn't need gmst)
+  const observerEcf = satellite.geodeticToEcf({
+    longitude: satellite.degreesToRadians(currentState.longitude),
+    latitude: satellite.degreesToRadians(currentState.latitude),
+    height: currentState.altitude,
+  });
 
-  const score1 = satelliteScores[0] ?? 0;
-  const score2 = satelliteScores[1] ?? 0;
+
+  let topScore1 = 0;
+  let topScore2 = 0;
+
+  for (let i = 0; i < satelliteEcfPositions.length; i++) {
+    const ecf = satelliteEcfPositions[i];
+
+   
+    if (
+      Math.abs(ecf.x - observerEcf.x) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM ||
+      Math.abs(ecf.y - observerEcf.y) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM ||
+      Math.abs(ecf.z - observerEcf.z) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM
+    ) {
+      continue; 
+    }
+
+    const score = calculateSatelliteScore(
+      currentState.latitude,
+      currentState.longitude,
+      currentState.altitude,
+      ecf,
+    );
+
+    if (score !== null) {
+      if (score > topScore1) {
+        topScore2 = topScore1;
+        topScore1 = score;
+      } else if (score > topScore2) {
+        topScore2 = score;
+      }
+    }
+  }
 
   const avgSignalQuality =
-    (score1 + score2) / PATHFINDING_DEFAULTS.ACTIVE_LINKS_COUNT;
+    (topScore1 + topScore2) / PATHFINDING_DEFAULTS.ACTIVE_LINKS_COUNT;
 
   const penalty = 1 - avgSignalQuality;
 
@@ -70,3 +97,4 @@ export function edgeCostFunction(
     (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty)
   );
 }
+
