@@ -18,7 +18,7 @@ export const PATHFINDING_DEFAULTS = {
   SIGMOID_MIDPOINT_DEG: 25,
 
   /** Sigmoid steepness parameter */
-  SIGMOID_STEEPNESS: 0.3,
+  SIGMOID_STEEPNESS: 0.45,
 
   /** Goal radius in km - how close to the destination counts as "arrived" */
   GOAL_RADIUS_KM: 2.0,
@@ -69,5 +69,5 @@ export const PATHFINDING_DEFAULTS = {
    * ε = 2.0 → path is at most 2× worse than optimal, significantly faster.
    * ε > 2.0 → increasingly greedy, faster but less optimal.
    */
-  HEURISTIC_WEIGHT: 2.0,
+  HEURISTIC_WEIGHT: 1.5,
 } as const;
