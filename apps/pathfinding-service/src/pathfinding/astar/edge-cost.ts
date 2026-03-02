@@ -28,7 +28,7 @@ export function propagateSatellitesToEcf(
       const ecf = satellite.eciToEcf(positionEci, gmst);
       ecfPositions.push(ecf);
     } catch {
-      // Skip satellites with propagation errors
+      continue;
     }
   }
 
