@@ -26,12 +26,23 @@ function normalizeBearing(bearing: number): number {
 export function nodesBuilder(
   currentState: State,
   distanceToGoalKm: number,
+  forceMicroSteps = false,
 ): ChildrenGroup {
-  const isFar =
+  // Determine maneuver tier.
+  // forceMicroSteps (set by the engine's look-ahead radar) overrides distance-based tiers.
+  const isOceanic =
+    !forceMicroSteps &&
+    distanceToGoalKm > PATHFINDING_DEFAULTS.DYNAMIC_STEP_OCEANIC_THRESHOLD_KM;
+  const isMacro =
+    !forceMicroSteps &&
+    !isOceanic &&
     distanceToGoalKm > PATHFINDING_DEFAULTS.DYNAMIC_STEP_DISTANCE_THRESHOLD_KM;
-  const timeStepSeconds = isFar
-    ? PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS
-    : PATHFINDING_DEFAULTS.DYNAMIC_STEP_FINE_SECONDS;
+
+  const timeStepSeconds = isOceanic
+    ? PATHFINDING_DEFAULTS.DYNAMIC_STEP_OCEANIC_SECONDS
+    : isMacro
+      ? PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS
+      : PATHFINDING_DEFAULTS.DYNAMIC_STEP_FINE_SECONDS;
 
   const speedKmPerSec = PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / 3600;
   const distanceKm = speedKmPerSec * timeStepSeconds;
@@ -40,19 +51,27 @@ export function nodesBuilder(
     currentState.time.getTime() + timeStepSeconds * 1000,
   );
 
-  // Select turning constants based on maneuver type (Macro vs Micro)
-  const avgLeftTurn = isFar
-    ? PATHFINDING_DEFAULTS.MACRO_AVG_LEFT_TURN_BEARING_CHANGE
-    : PATHFINDING_DEFAULTS.MICRO_AVG_LEFT_TURN_BEARING_CHANGE;
-  const avgRightTurn = isFar
-    ? PATHFINDING_DEFAULTS.MACRO_AVG_RIGHT_TURN_BEARING_CHANGE
-    : PATHFINDING_DEFAULTS.MICRO_AVG_RIGHT_TURN_BEARING_CHANGE;
-  const finalLeftTurn = isFar
-    ? PATHFINDING_DEFAULTS.MACRO_LEFT_TURN_STATE_BEARING_CHANGE
-    : PATHFINDING_DEFAULTS.MICRO_LEFT_TURN_STATE_BEARING_CHANGE;
-  const finalRightTurn = isFar
-    ? PATHFINDING_DEFAULTS.MACRO_RIGHT_TURN_STATE_BEARING_CHANGE
-    : PATHFINDING_DEFAULTS.MICRO_RIGHT_TURN_STATE_BEARING_CHANGE;
+  // Select turning constants based on maneuver tier (Oceanic vs Macro vs Micro)
+  const avgLeftTurn = isOceanic
+    ? PATHFINDING_DEFAULTS.OCEANIC_AVG_LEFT_TURN_BEARING_CHANGE
+    : isMacro
+      ? PATHFINDING_DEFAULTS.MACRO_AVG_LEFT_TURN_BEARING_CHANGE
+      : PATHFINDING_DEFAULTS.MICRO_AVG_LEFT_TURN_BEARING_CHANGE;
+  const avgRightTurn = isOceanic
+    ? PATHFINDING_DEFAULTS.OCEANIC_AVG_RIGHT_TURN_BEARING_CHANGE
+    : isMacro
+      ? PATHFINDING_DEFAULTS.MACRO_AVG_RIGHT_TURN_BEARING_CHANGE
+      : PATHFINDING_DEFAULTS.MICRO_AVG_RIGHT_TURN_BEARING_CHANGE;
+  const finalLeftTurn = isOceanic
+    ? PATHFINDING_DEFAULTS.OCEANIC_LEFT_TURN_STATE_BEARING_CHANGE
+    : isMacro
+      ? PATHFINDING_DEFAULTS.MACRO_LEFT_TURN_STATE_BEARING_CHANGE
+      : PATHFINDING_DEFAULTS.MICRO_LEFT_TURN_STATE_BEARING_CHANGE;
+  const finalRightTurn = isOceanic
+    ? PATHFINDING_DEFAULTS.OCEANIC_RIGHT_TURN_STATE_BEARING_CHANGE
+    : isMacro
+      ? PATHFINDING_DEFAULTS.MACRO_RIGHT_TURN_STATE_BEARING_CHANGE
+      : PATHFINDING_DEFAULTS.MICRO_RIGHT_TURN_STATE_BEARING_CHANGE;
 
   // Position is calculated using the average bearing during the turn arc.
   // The final state bearing is the full turn amount (precise, not snapped).

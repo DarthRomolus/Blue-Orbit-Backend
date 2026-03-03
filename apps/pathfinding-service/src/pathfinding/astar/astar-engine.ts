@@ -4,9 +4,9 @@ import * as satellite from 'satellite.js';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { nodesBuilder } from '../graph/nodes-builder';
 import { calculateNodeScores } from './cost-function';
-import { propagateSatellitesToEcf } from './edge-cost';
+import { propagateSatellitesToEcf, edgeCostFunction } from './edge-cost';
 import { MinHeap } from './min-heap';
-import { getGreatCircleDistanceKm } from 'src/common/utils/geo-calculations.utils';
+import { getGreatCircleDistanceKm, calculateDestination } from 'src/common/utils/geo-calculations.utils';
 import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 
 /**
@@ -94,7 +94,54 @@ export function astarEngine(
     }
     closedSet.add(key);
 
-    const childrenStates: ChildrenGroup = nodesBuilder(currentState, distanceToGoal);
+    // --- LOOK-AHEAD RADAR (Probe) ---
+    // While standing on a safe node, project a theoretical macro-step forward.
+    // If the probe shows poor coverage, we found a dead zone boundary.
+    // Switch to micro-steps BEFORE committing to the big jump.
+    let forceMicroSteps = false;
+
+    if (
+      PATHFINDING_DEFAULTS.W_CONN > 0 &&
+      currentState.signalQuality >= PATHFINDING_DEFAULTS.ZOOM_IN_SIGNAL_THRESHOLD &&
+      distanceToGoal > PATHFINDING_DEFAULTS.DYNAMIC_STEP_DISTANCE_THRESHOLD_KM
+    ) {
+      const macroDistanceKm =
+        (PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / 3600) *
+        PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS;
+
+      const probeCoords = calculateDestination(
+        currentState,
+        currentState.bearingDegrees,
+        macroDistanceKm,
+      );
+
+      const probeTime = new Date(
+        currentState.time.getTime() +
+          PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS * 1000,
+      );
+
+      // Get ECF positions for probe time (may be cached)
+      let probeEcf = ecfCache.get(probeTime.getTime());
+      if (!probeEcf) {
+        probeEcf = propagateSatellitesToEcf(satrecs, probeTime);
+        ecfCache.set(probeTime.getTime(), probeEcf);
+      }
+
+      const probeState: State = {
+        ...currentState,
+        latitude: probeCoords.latitude,
+        longitude: probeCoords.longitude,
+        time: probeTime,
+      };
+
+      const probeResult = edgeCostFunction(probeState, probeEcf, macroDistanceKm);
+
+      if (probeResult.signalQuality < PATHFINDING_DEFAULTS.ZOOM_IN_SIGNAL_THRESHOLD) {
+        forceMicroSteps = true; // Dead zone ahead — zoom in from safe ground!
+      }
+    }
+
+    const childrenStates: ChildrenGroup = nodesBuilder(currentState, distanceToGoal, forceMicroSteps);
 
     const children = [
       childrenStates.left,
