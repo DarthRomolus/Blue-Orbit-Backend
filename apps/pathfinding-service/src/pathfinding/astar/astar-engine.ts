@@ -52,13 +52,14 @@ export function astarEngine(
     }
   }
 
+  let lastState: State = initialState;
   const openList = new MinHeap();
   const closedSet = new Set<string>();
   const ecfCache = new Map<number, satellite.EcfVec3<number>[]>();
   let iterations = 0;
 
   openList.push({
-    state: { ...initialState, costToPoint: 0, parentNode: null },
+    state: { ...initialState, costToPoint: 0, parentNode: null, signalQuality: 1.0 },
     fCost: 0,
   });
 

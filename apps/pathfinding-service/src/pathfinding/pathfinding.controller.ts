@@ -17,6 +17,7 @@ export class PathfindingController {
       time: new Date(pathfindingRequest.startState.time),
       costToPoint: 0,
       parentNode: null,
+      signalQuality: 1.0,
     };
 
     const result = await this.pathfindingService.calculateOptimalPath(

@@ -6,6 +6,7 @@ export type State = {
   bearingDegrees: number;
   costToPoint: number;
   parentNode: State | null;
+  signalQuality: number;
 };
 export type ChildrenGroup = {
   left: State;
