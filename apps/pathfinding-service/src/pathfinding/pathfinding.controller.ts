@@ -29,7 +29,6 @@ export class PathfindingController {
       nodesExplored: result.nodesExplored,
       totalCost: result.totalCost,
       pathLength: result.path.length,
-
       geoJson: pathToGeoJSON(result.path),
     };
   }
