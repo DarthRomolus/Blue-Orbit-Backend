@@ -91,11 +91,12 @@ export function edgeCostFunction(
   const avgSignalQuality =
     (topScore1 + topScore2) / PATHFINDING_DEFAULTS.ACTIVE_LINKS_COUNT;
 
-  const penalty = 1 - avgSignalQuality;
+  const penalty = Math.min(1 - avgSignalQuality, PATHFINDING_DEFAULTS.MAX_PENALTY_CAP);
 
-  return (
+  const cost =
     distanceKm *
-    (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty)
-  );
+    (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty);
+
+  return { cost, signalQuality: avgSignalQuality };
 }
 

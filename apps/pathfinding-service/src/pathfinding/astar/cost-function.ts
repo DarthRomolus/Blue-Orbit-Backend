@@ -8,6 +8,7 @@ import * as satellite from 'satellite.js';
 /**
  * Calculates f(n) = g(n) + ε·h(n) for a given child node (Weighted A*).
  * Receives pre-computed satellite ECF positions to avoid redundant SGP4 work.
+ * Returns gScore, fScore, and signalQuality for adaptive resolution.
  */
 export function calculateNodeScores(
   childNodeState: State,
@@ -17,7 +18,7 @@ export function calculateNodeScores(
 ) {
   const hScore = heuristic(childNodeState, goal);
 
-  const stepCost = edgeCostFunction(childNodeState, satelliteEcfPositions, distanceKm);
+  const { cost: stepCost, signalQuality } = edgeCostFunction(childNodeState, satelliteEcfPositions, distanceKm);
 
   const gScore = childNodeState.costToPoint + stepCost;
 
@@ -26,5 +27,6 @@ export function calculateNodeScores(
   return {
     gScore,
     fScore,
+    signalQuality,
   };
 }
