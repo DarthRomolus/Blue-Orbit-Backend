@@ -47,11 +47,12 @@ export function edgeCostFunction(
   satelliteEcfPositions: satellite.EcfVec3<number>[],
   distanceKm: number,
 ) {
-  // Convert plane to ECF once per node (geodeticToEcf doesn't need gmst)
+  // Convert plane to ECF once per node (height must be in km)
+  const altitudeKm = currentState.altitude / 1000;
   const observerEcf = satellite.geodeticToEcf({
     longitude: satellite.degreesToRadians(currentState.longitude),
     latitude: satellite.degreesToRadians(currentState.latitude),
-    height: currentState.altitude,
+    height: altitudeKm,
   });
 
 
@@ -73,7 +74,7 @@ export function edgeCostFunction(
     const score = calculateSatelliteScore(
       currentState.latitude,
       currentState.longitude,
-      currentState.altitude,
+      altitudeKm,
       ecf,
     );
 
