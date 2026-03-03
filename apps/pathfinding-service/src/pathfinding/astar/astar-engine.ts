@@ -167,16 +167,34 @@ export function astarEngine(
 
       const scores = calculateNodeScores(child, goal, ecfPositions, distanceKm);
       child.costToPoint = scores.gScore;
+      child.signalQuality = scores.signalQuality;
+
+      // DEBUG: Log every 100 iterations to diagnose coverage
+      if (iterations % 100 === 0 && child === children[2]) { // straight child only
+        console.log(`[A* #${iterations}] lat=${child.latitude.toFixed(2)}, lon=${child.longitude.toFixed(2)}, signal=${scores.signalQuality.toFixed(4)}, forceMicro=${forceMicroSteps}, ecfCount=${ecfPositions.length}`);
+      }
+      if (iterations === 1 && child === children[0]) {
+        const obsEcf = satellite.geodeticToEcf({
+          longitude: satellite.degreesToRadians(child.longitude),
+          latitude: satellite.degreesToRadians(child.latitude),
+          height: child.altitude,
+        });
+        const sat0 = ecfPositions[0];
+        console.log(`[DEBUG] altitude=${child.altitude}, observer ECF: x=${obsEcf.x.toFixed(1)}, y=${obsEcf.y.toFixed(1)}, z=${obsEcf.z.toFixed(1)}`);
+        console.log(`[DEBUG] sat[0] ECF: x=${sat0.x.toFixed(1)}, y=${sat0.y.toFixed(1)}, z=${sat0.z.toFixed(1)}`);
+        console.log(`[DEBUG] diff: dx=${Math.abs(sat0.x - obsEcf.x).toFixed(1)}, dy=${Math.abs(sat0.y - obsEcf.y).toFixed(1)}, dz=${Math.abs(sat0.z - obsEcf.z).toFixed(1)}, threshold=${PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM}`);
+      }
 
       openList.push({
         state: child,
         fCost: scores.fScore,
       });
     }
+    lastState=currentState;
   }
 
   return {
-    path: [],
+    path: reconstructPath(lastState),
     totalCost: Infinity,
     nodesExplored: iterations,
     success: false,

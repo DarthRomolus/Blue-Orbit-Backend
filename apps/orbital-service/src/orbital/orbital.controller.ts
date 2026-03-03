@@ -13,11 +13,15 @@ export class OrbitalController {
   @Post('process')
   public async getTLE(): Promise<SatelliteData[] | null> {
     await Promise.all([
-      this.orbitalService.processTleData(CELESTRACK_GROUPS.GLOBALSTAR),
+      //this.orbitalService.processTleData(CELESTRACK_GROUPS.GLOBALSTAR),
       this.orbitalService.processTleData(CELESTRACK_GROUPS.IRIDIUM),
-      this.orbitalService.processTleData(CELESTRACK_GROUPS.ONEWEB),
+      //this.orbitalService.processTleData(CELESTRACK_GROUPS.ONEWEB),
       this.orbitalService.processTleData(CELESTRACK_GROUPS.QIANFAN),
-      this.orbitalService.processTleData(CELESTRACK_GROUPS.ORBCOMM),
+      //this.orbitalService.processTleData(CELESTRACK_GROUPS.ORBCOMM),
+      //this.orbitalService.processTleData(CELESTRACK_GROUPS.KUIPER),
+     
+
+
     ]);
     return this.orbitalService.allSatellitesData();
   }
