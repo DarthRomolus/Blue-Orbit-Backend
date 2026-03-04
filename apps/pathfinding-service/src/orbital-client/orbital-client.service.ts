@@ -3,6 +3,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import type { SatellitePositionGeodetic } from 'src/common/types/satellite';
 import type { SatelliteTle } from 'src/common/types/reducedSatelliteData';
+import { RMQ_PATTERNS } from 'src/common/constants/rmq.constants';
 
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
@@ -21,7 +22,7 @@ export class OrbitalClientService implements OnModuleInit {
   async getSatellitePosition(
     noradID: string,
   ): Promise<SatellitePositionGeodetic> {
-    const pattern = { cmd: 'satellite_position' };
+    const pattern = RMQ_PATTERNS.SATELLITE_POSITION;
     const payload = noradID;
     const observable$ = this.client.send(pattern, payload);
     const satellite: SatellitePositionGeodetic =
@@ -29,7 +30,7 @@ export class OrbitalClientService implements OnModuleInit {
     return satellite;
   }
   async getReducedAllSatelliteInfo(): Promise<SatelliteTle[]> {
-    const pattern = { cmd: 'all_satellite_data' };
+    const pattern = RMQ_PATTERNS.ALL_SATELLITE_DATA;
     const observable$ = this.client.send(pattern, {});
     const reducedAllSatelliteInfo: SatelliteTle[] = await lastValueFrom(
       observable$,

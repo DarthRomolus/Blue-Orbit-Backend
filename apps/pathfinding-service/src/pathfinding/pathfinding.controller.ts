@@ -3,6 +3,9 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { pathToGeoJSON } from 'src/common/utils/geo-calculations.utils';
 import { PathfindingService } from './pathfinding.service';
 import { PathfindingRequestDto } from 'src/common/dto/pathfinding-request.dto';
+import { PathfindingResponseDto } from 'src/common/dto/pathfinding-response.dto';
+import { RMQ_PATTERNS } from 'src/common/constants/rmq.constants';
+import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 
 @Controller('pathfinding')
 export class PathfindingController {
@@ -10,8 +13,8 @@ export class PathfindingController {
 
   constructor(private readonly pathfindingService: PathfindingService) {}
 
-  @MessagePattern({ cmd: 'calculate_path' })
-  public async calculatePath(@Payload() pathfindingRequest: PathfindingRequestDto) {
+  @MessagePattern(RMQ_PATTERNS.CALCULATE_PATH)
+  public async calculatePath(@Payload() pathfindingRequest: PathfindingRequestDto): Promise<PathfindingResponseDto> {
     this.logger.log('Received calculation request from Gateway via RMQ');
 
     const startState = {
@@ -19,7 +22,7 @@ export class PathfindingController {
       time: new Date(pathfindingRequest.startState.time),
       costToPoint: 0,
       parentNode: null,
-      signalQuality: 1.0,
+      signalQuality: PATHFINDING_DEFAULTS.MAX_SIGNAL_QUALITY,
     };
 
     const result = await this.pathfindingService.calculateOptimalPath(
