@@ -4,6 +4,7 @@ import { Coordinates } from 'src/common/types/coordinates';
 import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 import { TimeWindowScore } from 'src/common/types/timeWindowScore';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
+import { VISIBILITY_DEFAULTS } from 'src/common/constants/visibility.constants';
 import Piscina from 'piscina';
 import { resolve } from 'path';
 
@@ -11,12 +12,13 @@ import { resolve } from 'path';
 export class VisibilityService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(VisibilityService.name);
   private workerPool: Piscina;
-  private readonly numOfThreads = 6; //dev
+  private readonly numOfThreads = VISIBILITY_DEFAULTS.WORKER_POOL_THREAD_COUNT;
+  
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
 
   onModuleInit() {
     this.workerPool = new Piscina({
-      filename: resolve(__dirname, 'workers/coverage.worker.js'),
+      filename: resolve(__dirname, VISIBILITY_DEFAULTS.COVERAGE_WORKER_FILENAME),
       maxThreads: this.numOfThreads,
     });
   }
@@ -28,7 +30,7 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async calculateMaxCoverageTimeWindowOptimized(
+  async calculateMaxCoverageTimeWindow(
     startDate: Date,
     endDate: Date,
     locationCenter: Coordinates,
@@ -36,29 +38,61 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     timeFrameHours: number,
   ): Promise<TimeWindowScore> {
     const stepMs = TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
-    const snappedStart = new Date(
-      Math.ceil(startDate.getTime() / stepMs) * stepMs,
-    );
-    const snappedEnd = new Date(
-      Math.floor(endDate.getTime() / stepMs) * stepMs,
-    );
-    const batchDurationMs = Math.ceil(
-      (snappedEnd.getTime() - snappedStart.getTime()) / this.numOfThreads,
+    const snappedStart = new Date(Math.ceil(startDate.getTime() / stepMs) * stepMs);
+    const snappedEnd = new Date(Math.floor(endDate.getTime() / stepMs) * stepMs);
+
+    const reducedSatelliteData: SatelliteTle[] = await this.orbitalClientService.fetchTleData();
+
+    const coarseEntries = await this.runCoarseScan(
+      snappedStart,
+      snappedEnd,
+      locationCenter,
+      locationRadiusKm,
+      reducedSatelliteData
     );
 
-    const reducedSatelliteData: SatelliteTle[] =
-      await this.orbitalClientService.fetchTleData();
+    const coarseTimeFrameSlots = Math.floor(
+      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) / TIME_DEFAULTS.COARSE_STEP_MINUTES
+    );
+
+    const bestCoarseWindow = this.findBestSlidingWindow(coarseEntries, coarseTimeFrameSlots);
+
+    if (!bestCoarseWindow.startTime) {
+      return { startTime: null, coverageScore: 0 };
+    }
+
+    if (timeFrameHours > TIME_DEFAULTS.FINE_TUNING_THRESHOLD_HOURS) {
+      this.logger.log('Large window requested. Skipping fine-tuning.');
+      return bestCoarseWindow;
+    }
+
+    return this.runFineTuningScan(
+      bestCoarseWindow.startTime,
+      snappedStart,
+      snappedEnd,
+      timeFrameHours,
+      locationCenter,
+      locationRadiusKm,
+      reducedSatelliteData
+    );
+  }
+
+  private async runCoarseScan(
+    snappedStart: Date,
+    snappedEnd: Date,
+    locationCenter: Coordinates,
+    locationRadiusKm: number,
+    reducedSatelliteData: SatelliteTle[]
+  ): Promise<TimeWindowScore[]> {
+    const batchDurationMs = Math.ceil(
+      (snappedEnd.getTime() - snappedStart.getTime()) / this.numOfThreads
+    );
 
     const promisesCoarse: Promise<Float64Array>[] = [];
     for (let i = 0; i < this.numOfThreads; i++) {
-      const batchStartDate = new Date(
-        snappedStart.getTime() + i * batchDurationMs,
-      );
+      const batchStartDate = new Date(snappedStart.getTime() + i * batchDurationMs);
       const batchEndDate = new Date(
-        Math.min(
-          snappedEnd.getTime(),
-          batchStartDate.getTime() + batchDurationMs,
-        ),
+        Math.min(snappedEnd.getTime(), batchStartDate.getTime() + batchDurationMs)
       );
       promisesCoarse.push(
         this.workerPool.run({
@@ -68,14 +102,12 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
           locationRadiusKm,
           stepMinutes: TIME_DEFAULTS.COARSE_STEP_MINUTES,
           reducedSatelliteData,
-        }),
+        })
       );
     }
+    
     const resultsCoarse = (await Promise.all(promisesCoarse)) as Float64Array[];
-    const totalLengthCoarse = resultsCoarse.reduce(
-      (accumulate, current) => accumulate + current.length,
-      0,
-    );
+    const totalLengthCoarse = resultsCoarse.reduce((acc, curr) => acc + curr.length, 0);
     const mergedCoarseScores = new Float64Array(totalLengthCoarse);
 
     let offsetCoarse = 0;
@@ -84,74 +116,37 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
       offsetCoarse += batch.length;
     }
 
-    const coarseStepMs =
-      TIME_DEFAULTS.COARSE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const coarseStepMs = TIME_DEFAULTS.COARSE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
 
-    const coarseEntries: TimeWindowScore[] = Array.from(
+    return Array.from(
       mergedCoarseScores,
       (coverageScore, i) => ({
         startTime: new Date(snappedStart.getTime() + i * coarseStepMs),
         coverageScore,
-      }),
+      })
     );
+  }
 
-    const coarseTimeFrameSlots = Math.floor(
-      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
-        TIME_DEFAULTS.COARSE_STEP_MINUTES,
-    );
-
-    if (coarseEntries.length < coarseTimeFrameSlots) {
-      return { startTime: null, coverageScore: 0 };
-    }
-
-    let coarseWindowSum = 0;
-    for (let i = 0; i < coarseTimeFrameSlots; i++) {
-      coarseWindowSum += coarseEntries[i].coverageScore;
-    }
-
-    let bestCoarseStart: Date | null = coarseEntries[0].startTime;
-    let bestCoarseScore: number = coarseWindowSum;
-
-    for (let i = 1; i <= coarseEntries.length - coarseTimeFrameSlots; i++) {
-      coarseWindowSum =
-        coarseWindowSum -
-        coarseEntries[i - 1].coverageScore +
-        coarseEntries[i + coarseTimeFrameSlots - 1].coverageScore;
-
-      if (coarseWindowSum > bestCoarseScore) {
-        bestCoarseScore = coarseWindowSum;
-        bestCoarseStart = coarseEntries[i].startTime;
-      }
-    }
-
-    if (!bestCoarseStart) {
-      return { startTime: null, coverageScore: 0 };
-    }
-    if (timeFrameHours > TIME_DEFAULTS.FINE_TUNING_THRESHOLD_HOURS) {
-      this.logger.log('Large window requested. Skipping fine-tuning.');
-
-      return {
-        startTime: bestCoarseStart,
-        coverageScore: bestCoarseScore,
-      };
-    }
-
-    const paddingMs =
-      TIME_DEFAULTS.PADDING_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+  private async runFineTuningScan(
+    bestCoarseStart: Date,
+    snappedStart: Date,
+    snappedEnd: Date,
+    timeFrameHours: number,
+    locationCenter: Coordinates,
+    locationRadiusKm: number,
+    reducedSatelliteData: SatelliteTle[]
+  ): Promise<TimeWindowScore> {
+    const paddingMs = TIME_DEFAULTS.PADDING_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
     const timeFrameMs = timeFrameHours * TIME_DEFAULTS.MS_IN_HOUR;
 
     const fineStart = new Date(
-      Math.max(bestCoarseStart.getTime() - paddingMs, snappedStart.getTime()),
+      Math.max(bestCoarseStart.getTime() - paddingMs, snappedStart.getTime())
     );
     const fineEnd = new Date(
-      Math.min(
-        bestCoarseStart.getTime() + timeFrameMs + paddingMs,
-        snappedEnd.getTime(),
-      ),
+      Math.min(bestCoarseStart.getTime() + timeFrameMs + paddingMs, snappedEnd.getTime())
     );
 
-    const fineStepMs =
-      TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const fineStepMs = TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
 
     const fineScores = (await this.workerPool.run({
       startDate: fineStart,
@@ -168,38 +163,37 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     }));
 
     const fineTimeFrameSlots = Math.floor(
-      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
-        TIME_DEFAULTS.FINE_STEP_MINUTES,
+      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) / TIME_DEFAULTS.FINE_STEP_MINUTES
     );
 
-    if (fineEntries.length < fineTimeFrameSlots) {
+    return this.findBestSlidingWindow(fineEntries, fineTimeFrameSlots);
+  }
+
+  private findBestSlidingWindow(entries: TimeWindowScore[], slots: number): TimeWindowScore {
+    if (entries.length < slots) {
       return { startTime: null, coverageScore: 0 };
     }
 
-    let fineWindowSum = 0;
-    for (let i = 0; i < fineTimeFrameSlots; i++) {
-      fineWindowSum += fineEntries[i].coverageScore;
+    let windowSum = 0;
+    for (let i = 0; i < slots; i++) {
+      windowSum += entries[i].coverageScore;
     }
 
-    let result: TimeWindowScore = {
-      startTime: fineEntries[0].startTime,
-      coverageScore: fineWindowSum,
-    };
+    let bestStart: Date | null = entries[0].startTime;
+    let bestScore: number = windowSum;
 
-    for (let i = 1; i <= fineEntries.length - fineTimeFrameSlots; i++) {
-      fineWindowSum =
-        fineWindowSum -
-        fineEntries[i - 1].coverageScore +
-        fineEntries[i + fineTimeFrameSlots - 1].coverageScore;
+    for (let i = 1; i <= entries.length - slots; i++) {//TODO: meaningfull variable name for i
+      windowSum = windowSum - entries[i - 1].coverageScore + entries[i + slots - 1].coverageScore;
 
-      if (fineWindowSum > result.coverageScore) {
-        result = {
-          startTime: fineEntries[i].startTime,
-          coverageScore: fineWindowSum,
-        };
+      if (windowSum > bestScore) {
+        bestScore = windowSum;
+        bestStart = entries[i].startTime;
       }
     }
 
-    return result;
+    return {
+      startTime: bestStart,
+      coverageScore: bestScore,
+    };
   }
 }

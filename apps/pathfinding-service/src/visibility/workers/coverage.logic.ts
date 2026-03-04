@@ -53,7 +53,7 @@ export function timeStepCoverageScore(
   const currentTime = new Date(startTimestamp);
   let timestamp = startTimestamp;
 
-  for (let i = 0; i < slotCount; i++) {
+  for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
     currentTime.setTime(timestamp);
     let timeWindowScore = 0;
 
@@ -81,7 +81,7 @@ export function timeStepCoverageScore(
 
       timeWindowScore += satelliteScore;
     }
-    scores[i] = timeWindowScore;
+    scores[slotIndex] = timeWindowScore;
     timestamp += stepMs;
   }
 
