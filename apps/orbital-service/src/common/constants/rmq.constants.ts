@@ -1,6 +1,5 @@
 
 export const RMQ_CONSTANTS = {
-  PATHFINDING_QUEUE: 'pathfinding_queue',
   ORBITAL_QUEUE: 'orbital_queue',
   QUEUE_OPTIONS: {
     durable: false,
