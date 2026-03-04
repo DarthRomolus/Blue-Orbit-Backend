@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { State } from '../graph/state';
 import { calculateSatelliteScore } from '../satelliteScore/satellite-scorer';
+import { EdgeCostResult } from 'src/common/types/pathfinding.types';
 
 const logger = new Logger('EdgeCost');
 
@@ -40,6 +41,28 @@ export function propagateSatellitesToEcf(
 }
 
 /**
+ * Checks if a satellite's ECF position is completely outside of the
+ * threshold bounding box relative to the plane's observer ECF.
+ */
+function isSatelliteOutOfRange(
+  satEcf: satellite.EcfVec3<number>, 
+  observerEcf: satellite.EcfVec3<number>
+): boolean {
+  return (
+    Math.abs(satEcf.x - observerEcf.x) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM ||
+    Math.abs(satEcf.y - observerEcf.y) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM ||
+    Math.abs(satEcf.z - observerEcf.z) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM
+  );
+}
+
+/**
+ * Calculates the average signal quality from top scoring satellites
+ */
+function calculateAverageSignalQuality(topScore1: number, topScore2: number): number {
+  return (topScore1 + topScore2) / PATHFINDING_DEFAULTS.ACTIVE_LINKS_COUNT;
+}
+
+/**
  * Calculates the cost of traversing an edge, given pre-computed
  * satellite ECF positions for the child's timestamp.
  *
@@ -50,28 +73,21 @@ export function edgeCostFunction(
   currentState: State,
   satelliteEcfPositions: satellite.EcfVec3<number>[],
   distanceKm: number,
-) {
-  // Convert plane to ECF once per node (height must be in km)
-  const altitudeKm = currentState.altitude / 1000;
-  const observerEcf = satellite.geodeticToEcf({
+): EdgeCostResult {
+  const altitudeKm = currentState.altitude / PATHFINDING_DEFAULTS.METERS_PER_KM;
+  const observerEcf:satellite.EcfVec3<number> = satellite.geodeticToEcf({
     longitude: satellite.degreesToRadians(currentState.longitude),
     latitude: satellite.degreesToRadians(currentState.latitude),
     height: altitudeKm,
   });
 
-
   let topScore1 = 0;
   let topScore2 = 0;
 
   for (let i = 0; i < satelliteEcfPositions.length; i++) {
-    const ecf = satelliteEcfPositions[i];
+    const ecf:satellite.EcfVec3<number> = satelliteEcfPositions[i];
 
-   
-    if (
-      Math.abs(ecf.x - observerEcf.x) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM ||
-      Math.abs(ecf.y - observerEcf.y) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM ||
-      Math.abs(ecf.z - observerEcf.z) > PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM
-    ) {
+    if (isSatelliteOutOfRange(ecf, observerEcf)) {
       continue; 
     }
 
@@ -92,8 +108,7 @@ export function edgeCostFunction(
     }
   }
 
-  const avgSignalQuality =
-    (topScore1 + topScore2) / PATHFINDING_DEFAULTS.ACTIVE_LINKS_COUNT;
+  const avgSignalQuality = calculateAverageSignalQuality(topScore1, topScore2);
 
   const penalty = Math.min(1 - avgSignalQuality, PATHFINDING_DEFAULTS.MAX_PENALTY_CAP);
 

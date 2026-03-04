@@ -4,44 +4,31 @@ import * as satellite from 'satellite.js';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { nodesBuilder } from '../graph/nodes-builder';
 import { calculateNodeScores } from './cost-function';
-import { propagateSatellitesToEcf, edgeCostFunction } from './edge-cost';
+import { edgeCostFunction } from './edge-cost';
 import { MinHeap } from './min-heap';
-import { getGreatCircleDistanceKm, calculateDestination } from 'src/common/utils/geo-calculations.utils';
+import { getGreatCircleDistanceKm } from 'src/common/utils/geo-calculations.utils';
 import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 import { Logger } from '@nestjs/common';
 import { buildSatrecs } from 'src/common/utils/satellite.utils';
+import { reconstructPath, shouldForceMicroSteps, getOrComputeEcfPositions } from '../../common/utils/astar.utils';
+import { AstarResult } from 'src/common/types/pathfinding.types';
 
 const logger = new Logger('AstarEngine');
 
-/**
- * Generates a unique string key for a state to avoid revisiting.
- * Rounds coordinates to 2 decimal places (~1.1km) and buckets bearing by 15°.
- */
+
 function stateKey(s: State): string {
   const lat = s.latitude.toFixed(2);
   const lon = s.longitude.toFixed(2);
   const bucketSize = PATHFINDING_DEFAULTS.BEARING_BUCKET_SIZE_DEG;
   const bearingBucket = Math.round(s.bearingDegrees / bucketSize) * bucketSize;
-  return `${lat},${lon},${bearingBucket}`;
-}
-
-function reconstructPath(goalState: State): State[] {
-  const path: State[] = [];
-  let current: State | null = goalState;
-
-  while (current !== null) {
-    path.push(current);
-    current = current.parentNode;
-  }
-
-  return path.reverse();
+  return `${lat},${lon},${bearingBucket}`;//TODO: לעבור על זה, לבדוק bitmap
 }
 
 export function astarEngine(
   initialState: State,
   goal: Coordinates,
   satellites: SatelliteTle[],
-) {
+): AstarResult {
   const satrecs = buildSatrecs(satellites);
 
   let lastState: State = initialState;
@@ -51,7 +38,12 @@ export function astarEngine(
   let iterations = 0;
 
   openList.push({
-    state: { ...initialState, costToPoint: 0, parentNode: null, signalQuality: 1.0 },
+    state: { 
+      ...initialState, 
+      costToPoint: 0, 
+      parentNode: null, 
+      signalQuality: PATHFINDING_DEFAULTS.MAX_SIGNAL_QUALITY 
+    },
     fCost: 0,
   });
 
@@ -86,48 +78,7 @@ export function astarEngine(
     }
     closedSet.add(key);
 
-    
-    let forceMicroSteps = false;
-
-    if (
-      PATHFINDING_DEFAULTS.W_CONN > 0 &&
-      currentState.signalQuality >= PATHFINDING_DEFAULTS.ZOOM_IN_SIGNAL_THRESHOLD &&
-      distanceToGoal > PATHFINDING_DEFAULTS.DYNAMIC_STEP_DISTANCE_THRESHOLD_KM
-    ) {
-      const macroDistanceKm =
-        (PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / 3600) *
-        PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS;
-
-      const probeCoords = calculateDestination(
-        currentState,
-        currentState.bearingDegrees,
-        macroDistanceKm,
-      );
-
-      const probeTime = new Date(
-        currentState.time.getTime() +
-          PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS * 1000,
-      );
-
-      let probeEcf = ecfCache.get(probeTime.getTime());
-      if (!probeEcf) {
-        probeEcf = propagateSatellitesToEcf(satrecs, probeTime);
-        ecfCache.set(probeTime.getTime(), probeEcf);
-      }
-
-      const probeState: State = {
-        ...currentState,
-        latitude: probeCoords.latitude,
-        longitude: probeCoords.longitude,
-        time: probeTime,
-      };
-
-      const probeResult = edgeCostFunction(probeState, probeEcf, macroDistanceKm);
-
-      if (probeResult.signalQuality < PATHFINDING_DEFAULTS.ZOOM_IN_SIGNAL_THRESHOLD) {
-        forceMicroSteps = true; // Dead zone ahead — zoom in from safe ground!
-      }
-    }
+    const forceMicroSteps = shouldForceMicroSteps(currentState, distanceToGoal, ecfCache, satrecs);
 
     const childrenStates: ChildrenGroup = nodesBuilder(currentState, distanceToGoal, forceMicroSteps);
 
@@ -137,12 +88,7 @@ export function astarEngine(
       childrenStates.straight,
     ];
 
-    const childTime = children[0].time.getTime();
-    let ecfPositions = ecfCache.get(childTime);
-    if (!ecfPositions) {
-      ecfPositions = propagateSatellitesToEcf(satrecs, children[0].time);
-      ecfCache.set(childTime, ecfPositions);
-    }
+    const ecfPositions = getOrComputeEcfPositions(children[0].time, ecfCache, satrecs);
 
     for (const child of children) {
       child.parentNode = currentState;
@@ -150,14 +96,13 @@ export function astarEngine(
       const childKey = stateKey(child);
       if (closedSet.has(childKey)) continue;
 
-      const timeDeltaSeconds = (child.time.getTime() - currentState.time.getTime()) / 1000;
-      const distanceKm = (PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / 3600) * timeDeltaSeconds;
+      const timeDeltaSeconds = (child.time.getTime() - currentState.time.getTime()) / PATHFINDING_DEFAULTS.MS_PER_SECOND;
+      const distanceKm = (PATHFINDING_DEFAULTS.DEFAULT_SPEED_KMH / PATHFINDING_DEFAULTS.SECONDS_PER_HOUR) * timeDeltaSeconds;
 
       const scores = calculateNodeScores(child, goal, ecfPositions, distanceKm);
       child.costToPoint = scores.gScore;
       child.signalQuality = scores.signalQuality;
 
-      // DEBUG: Log every 100 iterations to diagnose coverage
       if (iterations % 100 === 0 && child === children[2]) { // straight child only
         logger.debug(`[A* #${iterations}] lat=${child.latitude.toFixed(2)}, lon=${child.longitude.toFixed(2)}, signal=${scores.signalQuality.toFixed(4)}, forceMicro=${forceMicroSteps}, ecfCount=${ecfPositions.length}`);
       }
