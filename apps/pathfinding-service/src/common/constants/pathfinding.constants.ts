@@ -12,10 +12,10 @@ export const PATHFINDING_DEFAULTS = {
   W_DIST: 1,
 
   /** Connectivity penalty weight — how much poor coverage hurts */
-  W_CONN: 0.5,
+  W_CONN: 0.55,
 
   /** Sigmoid midpoint: elevation angle (degrees) where signal quality = 0.5 */
-  SIGMOID_MIDPOINT_DEG: 25,
+  SIGMOID_MIDPOINT_DEG: 50,
 
   /** Sigmoid steepness parameter */
   SIGMOID_STEEPNESS: 0.5,
@@ -96,5 +96,5 @@ export const PATHFINDING_DEFAULTS = {
    * ε = 2.0 → path is at most 2× worse than optimal, significantly faster.
    * ε > 2.0 → increasingly greedy, faster but less optimal.
    */
-  HEURISTIC_WEIGHT: 1.6,
+  HEURISTIC_WEIGHT: 1.55,
 } as const;
