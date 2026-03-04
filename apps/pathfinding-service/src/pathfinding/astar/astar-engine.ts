@@ -8,6 +8,10 @@ import { propagateSatellitesToEcf, edgeCostFunction } from './edge-cost';
 import { MinHeap } from './min-heap';
 import { getGreatCircleDistanceKm, calculateDestination } from 'src/common/utils/geo-calculations.utils';
 import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
+import { Logger } from '@nestjs/common';
+import { buildSatrecs } from 'src/common/utils/satellite.utils';
+
+const logger = new Logger('AstarEngine');
 
 /**
  * Generates a unique string key for a state to avoid revisiting.
@@ -159,7 +163,7 @@ export function astarEngine(
 
       // DEBUG: Log every 100 iterations to diagnose coverage
       if (iterations % 100 === 0 && child === children[2]) { // straight child only
-        console.log(`[A* #${iterations}] lat=${child.latitude.toFixed(2)}, lon=${child.longitude.toFixed(2)}, signal=${scores.signalQuality.toFixed(4)}, forceMicro=${forceMicroSteps}, ecfCount=${ecfPositions.length}`);
+        logger.debug(`[A* #${iterations}] lat=${child.latitude.toFixed(2)}, lon=${child.longitude.toFixed(2)}, signal=${scores.signalQuality.toFixed(4)}, forceMicro=${forceMicroSteps}, ecfCount=${ecfPositions.length}`);
       }
       if (iterations === 1 && child === children[0]) {
         const obsEcf = satellite.geodeticToEcf({
@@ -168,9 +172,9 @@ export function astarEngine(
           height: child.altitude,
         });
         const sat0 = ecfPositions[0];
-        console.log(`[DEBUG] altitude=${child.altitude}, observer ECF: x=${obsEcf.x.toFixed(1)}, y=${obsEcf.y.toFixed(1)}, z=${obsEcf.z.toFixed(1)}`);
-        console.log(`[DEBUG] sat[0] ECF: x=${sat0.x.toFixed(1)}, y=${sat0.y.toFixed(1)}, z=${sat0.z.toFixed(1)}`);
-        console.log(`[DEBUG] diff: dx=${Math.abs(sat0.x - obsEcf.x).toFixed(1)}, dy=${Math.abs(sat0.y - obsEcf.y).toFixed(1)}, dz=${Math.abs(sat0.z - obsEcf.z).toFixed(1)}, threshold=${PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM}`);
+        logger.debug(`altitude=${child.altitude}, observer ECF: x=${obsEcf.x.toFixed(1)}, y=${obsEcf.y.toFixed(1)}, z=${obsEcf.z.toFixed(1)}`);
+        logger.debug(`sat[0] ECF: x=${sat0.x.toFixed(1)}, y=${sat0.y.toFixed(1)}, z=${sat0.z.toFixed(1)}`);
+        logger.debug(`diff: dx=${Math.abs(sat0.x - obsEcf.x).toFixed(1)}, dy=${Math.abs(sat0.y - obsEcf.y).toFixed(1)}, dz=${Math.abs(sat0.z - obsEcf.z).toFixed(1)}, threshold=${PATHFINDING_DEFAULTS.MIN_SATELLITE_DISTANCE_FROM_PLANE_KM}`);
       }
 
       openList.push({

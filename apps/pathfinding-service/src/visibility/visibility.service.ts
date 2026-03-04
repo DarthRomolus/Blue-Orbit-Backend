@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { OrbitalClientService } from 'src/orbital-client/orbital-client.service';
 import { Coordinates } from 'src/common/types/coordinates';
 import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
@@ -6,10 +6,10 @@ import { TimeWindowScore } from 'src/common/types/timeWindowScore';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 import Piscina from 'piscina';
 import { resolve } from 'path';
-import os from 'os';
 
 @Injectable()
 export class VisibilityService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(VisibilityService.name);
   private workerPool: Piscina;
   private readonly numOfThreads = 6; //dev
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
@@ -128,7 +128,7 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
       return { startTime: null, coverageScore: 0 };
     }
     if (timeFrameHours > TIME_DEFAULTS.FINE_TUNING_THRESHOLD_HOURS) {
-      console.log('Large window requested. Skipping fine-tuning.');
+      this.logger.log('Large window requested. Skipping fine-tuning.');
 
       return {
         startTime: bestCoarseStart,

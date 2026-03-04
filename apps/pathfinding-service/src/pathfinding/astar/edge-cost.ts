@@ -1,7 +1,10 @@
 import * as satellite from 'satellite.js';
+import { Logger } from '@nestjs/common';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { State } from '../graph/state';
 import { calculateSatelliteScore } from '../satelliteScore/satellite-scorer';
+
+const logger = new Logger('EdgeCost');
 
 /**
  * Propagates pre-parsed satellite records to the given time,
@@ -27,7 +30,8 @@ export function propagateSatellitesToEcf(
 
       const ecf = satellite.eciToEcf(positionEci, gmst);
       ecfPositions.push(ecf);
-    } catch {
+    } catch (error) {
+      logger.warn(`Failed to propagate satellite at index ${satrecs.indexOf(satrec)}: ${error}`);
       continue;
     }
   }
