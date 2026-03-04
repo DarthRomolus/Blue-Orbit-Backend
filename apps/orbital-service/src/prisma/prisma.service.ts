@@ -12,6 +12,11 @@ export class PrismaService
 {
   constructor() {
     const connectionString = process.env.ORBITAL_DATABASE_URL;
+    if (!connectionString) {
+      throw new Error(
+        'ORBITAL_DATABASE_URL environment variable is not set. Cannot start the orbital service without a database connection.',
+      );
+    }
     const pool = new Pool({ connectionString });
 
     const adapter = new PrismaPg(pool);

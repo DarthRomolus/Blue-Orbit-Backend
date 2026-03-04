@@ -1,10 +1,6 @@
 import { State } from '../../pathfinding/graph/state';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 
-/**
- * Determines the maneuver tier (Micro, Macro, or Oceanic) based on distance
- * to the goal, and whether micro-steps are forced by the look-ahead radar.
- */
 export function determineManeuverTier(
   distanceToGoalKm: number,
   forceMicroSteps: boolean,
@@ -21,10 +17,6 @@ export function determineManeuverTier(
   return { isOceanic, isMacro };
 }
 
-/**
- * Returns the correct turning constants and time step duration 
- * for the current maneuver tier.
- */
 export function getManeuverConstants(isOceanic: boolean, isMacro: boolean) {
   const timeStepSeconds = isOceanic
     ? PATHFINDING_DEFAULTS.DYNAMIC_STEP_OCEANIC_SECONDS

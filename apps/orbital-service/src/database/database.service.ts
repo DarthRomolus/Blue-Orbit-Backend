@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
 import type { SatelliteData } from 'src/common/types/satelliteData';
 
 @Injectable()

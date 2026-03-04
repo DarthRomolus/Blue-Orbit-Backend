@@ -11,4 +11,6 @@ export const RMQ_PATTERNS = {
   CALCULATE_COVERAGE: { cmd: 'calculate_coverage' },
   SATELLITE_POSITION: { cmd: 'satellite_position' },
   ALL_SATELLITE_DATA: { cmd: 'all_satellite_data' },
+  SATELLITE_PATH: { cmd: 'get_satellite_path' },
+  FULL_SATELLITES: { cmd: 'get_full_satellites' },
 } as const;

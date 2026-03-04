@@ -1,5 +1,7 @@
 export const TIME_RANGE = {
-  MINUTES: 105,
-  SECONDS_MULTIPLYER: 60,
-  MILLISECONDS_MULTIPLYER: 1000,
+  /** Duration of a satellite path prediction (105 minutes ≈ 1 LEO orbit) */
+  PATH_DURATION_MS: 105 * 60 * 1000,
+
+  /** Time step between path points in minutes */
+  PATH_STEP_MINUTES: 1,
 } as const;

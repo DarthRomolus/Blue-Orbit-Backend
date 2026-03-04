@@ -172,7 +172,7 @@ function calculateDestinationLongitude(lon1: number, lat1: number, lat2: number,
     );
 }
 
-function normalizeLongitude(lon: number): number {
+function normalizeLongitude(lon: number): number {//explain this function
   return ((lon + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
 }
 

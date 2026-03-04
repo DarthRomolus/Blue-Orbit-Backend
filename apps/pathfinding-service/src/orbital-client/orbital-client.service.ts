@@ -5,6 +5,7 @@ import type { SatellitePositionGeodetic } from 'src/common/types/satellite';
 import type { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 import { RMQ_PATTERNS } from 'src/common/constants/rmq.constants';
 
+
 @Injectable()
 export class OrbitalClientService implements OnModuleInit {
   private readonly logger = new Logger(OrbitalClientService.name);

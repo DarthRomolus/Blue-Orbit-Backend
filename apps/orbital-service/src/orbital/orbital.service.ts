@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CelestrackService } from 'src/celestrack/celestrack.service';
 import { SatelliteData } from '@generated/orbital-client';
 import { DatabaseService } from 'src/database/database.service';
-import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData.dto';
+import type { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
 
 @Injectable()
 export class OrbitalService {
