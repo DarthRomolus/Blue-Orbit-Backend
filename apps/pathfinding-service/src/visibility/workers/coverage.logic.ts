@@ -7,18 +7,9 @@ import {
   calculateEffectiveRadius,
 } from 'src/common/utils/geo-calculations.utils';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
+import { buildSatrecs } from 'src/common/utils/satellite.utils';
 
-function buildSatrecs(
-  reducedSatelliteData: SatelliteTle[],
-): satellite.SatRec[] {
-  const satrecs: satellite.SatRec[] = [];
-  for (const data of reducedSatelliteData) {
-    try {
-      satrecs.push(satellite.twoline2satrec(data.line1, data.line2));
-    } catch {}
-  }
-  return satrecs;
-}
+
 function calculateSatellitePositionBySatrec(
   satrec: satellite.SatRec,
   date: Date,

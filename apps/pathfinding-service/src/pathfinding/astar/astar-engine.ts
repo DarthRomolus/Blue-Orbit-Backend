@@ -21,10 +21,6 @@ function stateKey(s: State): string {
   return `${lat},${lon},${bearingBucket}`;
 }
 
-/**
- * Reconstructs the path from the goal state back to the start
- * by following parentNode pointers.
- */
 function reconstructPath(goalState: State): State[] {
   const path: State[] = [];
   let current: State | null = goalState;
@@ -42,15 +38,7 @@ export function astarEngine(
   goal: Coordinates,
   satellites: SatelliteTle[],
 ) {
-  // Pre-parse all TLE strings into SatRec objects ONCE (eliminates millions of redundant parses)
-  const satrecs: satellite.SatRec[] = [];
-  for (const sat of satellites) {
-    try {
-      satrecs.push(satellite.twoline2satrec(sat.line1, sat.line2));
-    } catch {
-      // Skip invalid TLEs
-    }
-  }
+  const satrecs = buildSatrecs(satellites);
 
   let lastState: State = initialState;
   const openList = new MinHeap();
