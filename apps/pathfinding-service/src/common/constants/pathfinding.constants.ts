@@ -97,4 +97,16 @@ export const PATHFINDING_DEFAULTS = {
    * ε > 2.0 → increasingly greedy, faster but less optimal.
    */
   HEURISTIC_WEIGHT: 1.55,
+
+  /** Maximum / perfect signal quality value */
+  MAX_SIGNAL_QUALITY: 1.0,
+
+  /** Meters in one kilometer */
+  METERS_PER_KM: 1000,
+
+  /** Seconds in one hour */
+  SECONDS_PER_HOUR: 3600,
+
+  /** Milliseconds in one second */
+  MS_PER_SECOND: 1000,
 } as const;
