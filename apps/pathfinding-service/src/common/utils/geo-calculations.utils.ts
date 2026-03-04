@@ -65,31 +65,52 @@ export function calculateEffectiveRadius(
   const coverageRadiusKm = angleForRadiusInRadians * earthRadius;
   return coverageRadiusKm;
 }
+export function calculateHaversineAngle(
+  deltaLat: number,
+  deltaLon: number,
+  lat1: number,
+  lat2: number
+): number {
+  const halfChordLength =
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(deltaLon / 2) *
+      Math.sin(deltaLon / 2) +
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2);
+
+  return 2 * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength));
+}
+
 export function getGreatCircleDistanceKm(
   satelliteCoverageCenter: Coordinates,
   locationCenter: Coordinates,
 ): number {
-  const deltaLatitude =
-    (locationCenter.latitude - satelliteCoverageCenter.latitude) *
-    ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
+  const lat1 = satelliteCoverageCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
+  const lat2 = locationCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
+  
+  const deltaLatitude = lat2 - lat1;
   const deltaLongitude =
     (locationCenter.longitude - satelliteCoverageCenter.longitude) *
     ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
 
-  const halfChordLength =
-    Math.cos(
-      satelliteCoverageCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS,
-    ) *
-      Math.cos(locationCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS) *
-      Math.sin(deltaLongitude / 2) *
-      Math.sin(deltaLongitude / 2) +
-    Math.sin(deltaLatitude / 2) * Math.sin(deltaLatitude / 2);
-
-  const angularDistance =
-    2 * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength));
+  const angularDistance = calculateHaversineAngle(deltaLatitude, deltaLongitude, lat1, lat2);
 
   return VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM * angularDistance;
 }
+
+function calculateCircleIntersectionArea(d: number, r1: number, r2: number): number {
+  const r1Sq = r1 * r1;
+  const r2Sq = r2 * r2;
+
+  const angle1 = Math.acos((d * d + r1Sq - r2Sq) / (2 * d * r1));
+  const angle2 = Math.acos((d * d + r2Sq - r1Sq) / (2 * d * r2));
+
+  const term = (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2);
+  const triangleArea = 0.5 * Math.sqrt(Math.max(0, term));
+  
+  return r1Sq * angle1 + r2Sq * angle2 - triangleArea;
+}
+
 function calculateCoveragePercentage(
   distanceKm: number,
   locationRadiusKm: number,
@@ -102,23 +123,13 @@ function calculateCoveragePercentage(
   if (d <= 0 || r1 <= 0 || r2 <= 0) {
     return 0;
   }
-  // Partial overlap (exact geometric calculation)
-  const r1Sq = r1 * r1;
-  const r2Sq = r2 * r2;
+  
+  const intersectionArea = calculateCircleIntersectionArea(d, r1, r2);
 
-  const angle1 = Math.acos((d * d + r1Sq - r2Sq) / (2 * d * r1));
-  const angle2 = Math.acos((d * d + r2Sq - r1Sq) / (2 * d * r2));
-
-  // Heron's formula to calculate the triangle area between centers and intersection points
-  const term = (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2);
-  const triangleArea = 0.5 * Math.sqrt(Math.max(0, term));
-  // Sector areas minus triangle areas
-  const intersectionArea = r1Sq * angle1 + r2Sq * angle2 - triangleArea;
-
-  // Return the ratio of how much the target is covered
-  const targetArea = Math.PI * r1Sq;
+  const targetArea = Math.PI * (r1 * r1);
   return intersectionArea / targetArea;
 }
+
 export function calculateCoverageScore(
   locationCenter: Coordinates,
   locationRadiusKm: number,
@@ -145,6 +156,26 @@ export function calculateCoverageScore(
     satelliteRadiusKm,
   );
 }
+
+function calculateDestinationLatitude(lat1: number, angularDistance: number, brng: number): number {
+  return Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(brng),
+  );
+}
+
+function calculateDestinationLongitude(lon1: number, lat1: number, lat2: number, angularDistance: number, brng: number): number {
+  return lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
+    );
+}
+
+function normalizeLongitude(lon: number): number {
+  return ((lon + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+}
+
 /**
  * Solves the Direct Geodesic Problem on a near-perfect sphere.
  * Calculates destination coordinates given a starting point, distance, and bearing.
@@ -159,35 +190,19 @@ export function calculateDestination(
   bearingDegrees: number,
   distanceKm: number,
 ): Coordinates {
-  // 1. Convert degrees to radians
   const lat1 = toRadians(state.latitude);
   const lon1 = toRadians(state.longitude);
   const brng = toRadians(bearingDegrees);
 
-  // Angular distance
   const angularDistance =
     distanceKm / VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
 
-  // 2. Calculate new latitude
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(angularDistance) +
-      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(brng),
-  );
+  const lat2 = calculateDestinationLatitude(lat1, angularDistance, brng);
+  
+  let lon2 = calculateDestinationLongitude(lon1, lat1, lat2, angularDistance, brng);
 
-  // 3. Calculate new longitude
-  let lon2 =
-    lon1 +
-    Math.atan2(
-      Math.sin(brng) * Math.sin(angularDistance) * Math.cos(lat1),
-      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
-    );
+  lon2 = normalizeLongitude(lon2);
 
-  // 4. Normalize longitude — critical!
-  // Ensures crossing the International Date Line (180°) wraps correctly,
-  // keeping the value always within the range [-180, 180].
-  lon2 = ((lon2 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
-
-  // 5. Convert back to degrees
   return {
     latitude: toDegrees(lat2),
     longitude: toDegrees(lon2),
