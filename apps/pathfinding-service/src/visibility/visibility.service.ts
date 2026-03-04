@@ -20,18 +20,14 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
       maxThreads: this.numOfThreads,
     });
   }
-  onModuleDestroy() {
-    this.workerPool.destroy();
-  }
-  private async fetchTleData(): Promise<SatelliteTle[]> {
+  async onModuleDestroy() {
     try {
-      const reducedSatelliteData: SatelliteTle[] =
-        await this.orbitalClientService.getReducedAllSatelliteInfo();
-      return reducedSatelliteData;
+      await this.workerPool.destroy();
     } catch (error) {
-      throw error;
+      this.logger.error('Failed to destroy worker pool:', error);
     }
   }
+
   async calculateMaxCoverageTimeWindowOptimized(
     startDate: Date,
     endDate: Date,
@@ -51,7 +47,7 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     );
 
     const reducedSatelliteData: SatelliteTle[] =
-      await this.fetchTleData();
+      await this.orbitalClientService.fetchTleData();
 
     const promisesCoarse: Promise<Float64Array>[] = [];
     for (let i = 0; i < this.numOfThreads; i++) {
