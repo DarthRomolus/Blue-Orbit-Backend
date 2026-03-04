@@ -35,4 +35,13 @@ export class OrbitalClientService implements OnModuleInit {
     );
     return reducedAllSatelliteInfo;
   }
+
+  async fetchTleData(): Promise<SatelliteTle[]> {
+    const tleData = await this.getReducedAllSatelliteInfo();
+    if (!tleData) {
+      this.logger.warn('Received null TLE data from orbital service');
+      return [];
+    }
+    return tleData;
+  }
 }
