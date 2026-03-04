@@ -7,12 +7,12 @@ import type { Coordinates } from '../types/coordinates';
 import type { State } from '../../pathfinding/graph/state';
 
 /**
- * ממיר את מסלול הטיסה לפורמט GeoJSON תקני להצגה על מפה
+ * Converts a flight path into standard GeoJSON format for map display.
  */
 export function pathToGeoJSON(path: State[]) {
   if (!path || path.length === 0) return null;
 
-  // חילוץ הקואורדינטות - שים לב שחייבים להפוך לסדר של [Longitude, Latitude]
+  // Extract coordinates — note that GeoJSON requires [Longitude, Latitude] order
   const coordinates = path.map((state) => [state.longitude, state.latitude]);
 
   return {
@@ -22,21 +22,21 @@ export function pathToGeoJSON(path: State[]) {
         type: 'Feature',
         properties: {
           name: 'Blue Orbit Flight Path',
-          stroke: '#0000ff', // צבע כחול לקו
-          'stroke-width': 4, // עובי הקו
+          stroke: '#0000ff',
+          'stroke-width': 4,
         },
         geometry: {
           type: 'LineString',
           coordinates: coordinates,
         },
       },
-      // נקודת התחלה
+      // Start point
       {
         type: 'Feature',
         properties: { markerType: 'Start' },
         geometry: { type: 'Point', coordinates: coordinates[0] },
       },
-      // נקודת סיום
+      // End point
       {
         type: 'Feature',
         properties: { markerType: 'End' },
@@ -102,20 +102,20 @@ function calculateCoveragePercentage(
   if (d <= 0 || r1 <= 0 || r2 <= 0) {
     return 0;
   }
-  // חפיפה חלקית (חישוב גיאומטרי מדויק)
+  // Partial overlap (exact geometric calculation)
   const r1Sq = r1 * r1;
   const r2Sq = r2 * r2;
 
   const angle1 = Math.acos((d * d + r1Sq - r2Sq) / (2 * d * r1));
   const angle2 = Math.acos((d * d + r2Sq - r1Sq) / (2 * d * r2));
 
-  // נוסחת הרון לחישוב שטח המשולש שבין המרכזים לנקודות החיתוך
+  // Heron's formula to calculate the triangle area between centers and intersection points
   const term = (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2);
   const triangleArea = 0.5 * Math.sqrt(Math.max(0, term));
-  // שטח הגזרות פחות שטח המשולשים
+  // Sector areas minus triangle areas
   const intersectionArea = r1Sq * angle1 + r2Sq * angle2 - triangleArea;
 
-  // החזרת היחס של כמה המטרה מכוסה
+  // Return the ratio of how much the target is covered
   const targetArea = Math.PI * r1Sq;
   return intersectionArea / targetArea;
 }
@@ -146,35 +146,35 @@ export function calculateCoverageScore(
   );
 }
 /**
- * פותר את בעיית הגאודזיה הישירה (Direct Geodesic Problem) על כדור כמעט מושלם.
- * מחשב את קואורדינטות היעד בהינתן נקודת התחלה, מרחק וכיוון.
- * * @param lat - קו רוחב התחלתי (מעלות)
- * @param lon - קו אורך התחלתי (מעלות)
- * @param distanceKm - המרחק שעברנו (קילומטרים)
- * @param bearingDegrees - כיוון התנועה (מעלות, 0 = צפון, 90 = מזרח)
- * @returns אובייקט Coordinates עם קו הרוחב והאורך החדשים
+ * Solves the Direct Geodesic Problem on a near-perfect sphere.
+ * Calculates destination coordinates given a starting point, distance, and bearing.
+ *
+ * @param state - The starting state containing latitude and longitude (degrees)
+ * @param bearingDegrees - Direction of travel (degrees, 0 = North, 90 = East)
+ * @param distanceKm - Distance traveled (kilometers)
+ * @returns Coordinates object with the new latitude and longitude
  */
 export function calculateDestination(
   state: State,
   bearingDegrees: number,
   distanceKm: number,
 ): Coordinates {
-  // 1. המרה ממעלות לרדיאנים
+  // 1. Convert degrees to radians
   const lat1 = toRadians(state.latitude);
   const lon1 = toRadians(state.longitude);
   const brng = toRadians(bearingDegrees);
 
-  // המרחק הזוויתי (Angular distance)
+  // Angular distance
   const angularDistance =
     distanceKm / VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
 
-  // 2. חישוב קו הרוחב החדש (Latitude)
+  // 2. Calculate new latitude
   const lat2 = Math.asin(
     Math.sin(lat1) * Math.cos(angularDistance) +
       Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(brng),
   );
 
-  // 3. חישוב קו האורך החדש (Longitude)
+  // 3. Calculate new longitude
   let lon2 =
     lon1 +
     Math.atan2(
@@ -182,12 +182,12 @@ export function calculateDestination(
       Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
     );
 
-  // 4. נרמול קו האורך - קריטי!
-  // מוודא שאם חצינו את קו התאריך הבינלאומי (180 מעלות), המספר "יתהפך" נכון
-  // ויישאר תמיד בטווח שבין -180 ל-180.
+  // 4. Normalize longitude — critical!
+  // Ensures crossing the International Date Line (180°) wraps correctly,
+  // keeping the value always within the range [-180, 180].
   lon2 = ((lon2 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
 
-  // 5. המרה חזרה למעלות
+  // 5. Convert back to degrees
   return {
     latitude: toDegrees(lat2),
     longitude: toDegrees(lon2),

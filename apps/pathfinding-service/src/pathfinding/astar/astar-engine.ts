@@ -86,10 +86,7 @@ export function astarEngine(
     }
     closedSet.add(key);
 
-    // --- LOOK-AHEAD RADAR (Probe) ---
-    // While standing on a safe node, project a theoretical macro-step forward.
-    // If the probe shows poor coverage, we found a dead zone boundary.
-    // Switch to micro-steps BEFORE committing to the big jump.
+    
     let forceMicroSteps = false;
 
     if (
@@ -112,7 +109,6 @@ export function astarEngine(
           PATHFINDING_DEFAULTS.DYNAMIC_STEP_FAST_SECONDS * 1000,
       );
 
-      // Get ECF positions for probe time (may be cached)
       let probeEcf = ecfCache.get(probeTime.getTime());
       if (!probeEcf) {
         probeEcf = propagateSatellitesToEcf(satrecs, probeTime);
