@@ -4,5 +4,4 @@ export class PathfindingResponseDto {
   nodesExplored: number;
   totalCost: number;
   pathLength: number;
-  geoJson: object | null;
 }
