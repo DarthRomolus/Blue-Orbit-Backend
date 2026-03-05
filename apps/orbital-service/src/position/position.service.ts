@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable,Logger } from '@nestjs/common';
 import * as satellite from 'satellite.js';
-import type { SatellitePositionGeodetic } from '../common/types/positionGeodetic.dto';
+import type { SatellitePositionGeodetic } from '../common/types/positionGeodetic';
 import type { SatelliteData } from 'src/common/types/satelliteData';
 import { DatabaseService } from 'src/database/database.service';
 import { TIME_RANGE } from 'src/common/constants/timeRange.constants';
@@ -8,6 +8,7 @@ import { MEASUREMENTS_DEFAULTS } from 'src/common/constants/measurements.constan
 
 @Injectable()
 export class PositionService {
+  private readonly logger = new Logger(PositionService.name);
   constructor(private readonly databaseService: DatabaseService) {}
 
   async calculateSatellitePositionById(
@@ -20,9 +21,19 @@ export class PositionService {
       if (!satelliteTle) {
         return undefined;
       }
-      const tleLine1: string = satelliteTle.line1;
-      const tleLine2: string = satelliteTle.line2;
-      const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
+      return this.calculateSatellitePositionByData(satelliteTle, date);
+    } catch (error) {
+      this.logger.error(`Failed to calculate position for NORAD ID ${noradID}: ${error}`);
+      return undefined;
+    }
+  }
+
+  calculateSatellitePositionByData(
+    satelliteData: SatelliteData,
+    date: Date,
+  ): SatellitePositionGeodetic | undefined {
+    try {
+      const satrec = satellite.twoline2satrec(satelliteData.line1, satelliteData.line2);
       const positionAndVelocity = satellite.propagate(satrec, date);
 
       if (
@@ -31,8 +42,7 @@ export class PositionService {
       ) {
         return undefined;
       }
-      const positionEci: satellite.EciVec3<number> =
-        positionAndVelocity.position;
+      const positionEci: satellite.EciVec3<number> = positionAndVelocity.position;
       const gmst = satellite.gstime(date);
       const positionGd = satellite.eciToGeodetic(positionEci, gmst);
 
@@ -42,34 +52,9 @@ export class PositionService {
         height: positionGd.height * MEASUREMENTS_DEFAULTS.KILOMETERS_TO_METERS,
       };
     } catch (error) {
+      this.logger.warn(`Failed to calculate position for satellite ${satelliteData.noradId}: ${error}`);
       return undefined;
     }
-  }
-
-  calculateSatellitePositionByData(
-    satelliteData: SatelliteData,
-    date: Date,
-  ): SatellitePositionGeodetic | undefined {
-    const tleLine1: string = satelliteData.line1;
-    const tleLine2: string = satelliteData.line2;
-    const satrec = satellite.twoline2satrec(tleLine1, tleLine2);
-    const positionAndVelocity = satellite.propagate(satrec, date);
-
-    if (
-      !positionAndVelocity?.position ||
-      typeof positionAndVelocity.position !== 'object'
-    ) {
-      return undefined;
-    }
-    const positionEci: satellite.EciVec3<number> = positionAndVelocity.position;
-    const gmst = satellite.gstime(date);
-    const positionGd = satellite.eciToGeodetic(positionEci, gmst);
-
-    return {
-      longitude: satellite.degreesLong(positionGd.longitude),
-      latitude: satellite.degreesLat(positionGd.latitude),
-      height: positionGd.height * MEASUREMENTS_DEFAULTS.KILOMETERS_TO_METERS,
-    };
   }
 
   async calculateSatellitePath(
@@ -77,15 +62,13 @@ export class PositionService {
   ): Promise<SatellitePositionGeodetic[] | undefined> {
     const currentDate = new Date();
     const endDate = new Date(
-      currentDate.getTime() +
-        TIME_RANGE.MINUTES *
-          TIME_RANGE.SECONDS_MULTIPLYER *
-          TIME_RANGE.MILLISECONDS_MULTIPLYER,
+      currentDate.getTime() + TIME_RANGE.PATH_DURATION_MS,
     );
 
     const satelliteData: SatelliteData | null =
       await this.databaseService.getSatelliteById(noradId);
     if (!satelliteData) {
+      this.logger.error(`Satellite with NORAD ID ${noradId} not found`);
       return undefined;
     }
     const pathPoints: SatellitePositionGeodetic[] = [];

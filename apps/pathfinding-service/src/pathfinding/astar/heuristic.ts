@@ -3,6 +3,10 @@ import type { State } from '../graph/state';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { getGreatCircleDistanceKm } from 'src/common/utils/geo-calculations.utils';
 
+/**
+ * Calculates the heuristic (estimated cost) from the current state to the goal.
+ * Uses the great-circle distance weighted by W_DIST.
+ */
 export function heuristic(state: State, goal: Coordinates): number {
   const distance = getGreatCircleDistanceKm(
     { latitude: state.latitude, longitude: state.longitude },

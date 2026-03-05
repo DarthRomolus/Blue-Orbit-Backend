@@ -1,40 +1,33 @@
-import * as satellite from 'satellite.js';
-import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
+import { Coordinates } from 'src/common/types/coordinates';
+import { heuristic } from './heuristic';
 import { State } from '../graph/state';
-import { calculateSatelliteScore } from '../satelliteScore/satellite-scorer';
-import { getGreatCircleDistanceKm } from 'src/common/utils/geo-calculations.utils';
+import { edgeCostFunction } from './edge-cost';
+import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
+import * as satellite from 'satellite.js';
+import { NodeScores } from 'src/common/types/pathfinding.types';
 
-export function edgeCostFunction(
-  currentState: State,
-  satellites: satellite.SatRec[],
-  lastState: State,
-) {
-  const satelliteScores = satellites
-    .map((satrec) =>
-      calculateSatelliteScore(
-        currentState.latitude,
-        currentState.longitude,
-        currentState.altitude,
-        satrec,
-        currentState.time,
-      ),
-    )
-    .filter((score) => score !== null)
-    .sort((a, b) => b - a)
-    .slice(0, PATHFINDING_DEFAULTS.TOP_SATELLITES_COUNT); // top 4
+/**
+ * Calculates f(n) = g(n) + ε·h(n) for a given child node (Weighted A*).
+ * Receives pre-computed satellite ECF positions to avoid redundant SGP4 work.
+ * Returns gScore, fScore, and signalQuality for adaptive resolution.
+ */
+export function calculateNodeScores(
+  childNodeState: State,
+  goal: Coordinates,
+  satelliteEcfPositions: satellite.EcfVec3<number>[],
+  distanceKm: number,
+): NodeScores {
+  const hScore:number = heuristic(childNodeState, goal);
 
-  const score1 = satelliteScores[0] ?? 0;
-  const score2 = satelliteScores[1] ?? 0;
+  const { cost: stepCost, signalQuality } = edgeCostFunction(childNodeState, satelliteEcfPositions, distanceKm);
 
-  const avgSignalQuality =
-    (score1 + score2) / PATHFINDING_DEFAULTS.ACTIVE_LINKS_COUNT;
+  const gScore:number = childNodeState.costToPoint + stepCost;
 
-  const penalty = 1 - avgSignalQuality;
+  const fScore:number = gScore + PATHFINDING_DEFAULTS.HEURISTIC_WEIGHT * hScore;
 
-  const distance = getGreatCircleDistanceKm(
-    { latitude: currentState.latitude, longitude: currentState.longitude },
-    { latitude: lastState.latitude, longitude: lastState.longitude },
-  );
-
-  return distance * (PATHFINDING_DEFAULTS.W_DIST + PATHFINDING_DEFAULTS.W_CONN * penalty);
+  return {
+    gScore,
+    fScore,
+    signalQuality,
+  };
 }

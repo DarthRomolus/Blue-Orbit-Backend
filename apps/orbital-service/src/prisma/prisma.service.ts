@@ -11,14 +11,16 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    // 1. יצירת חיבור ל-Postgres (Pool)
     const connectionString = process.env.ORBITAL_DATABASE_URL;
+    if (!connectionString) {
+      throw new Error(
+        'ORBITAL_DATABASE_URL environment variable is not set. Cannot start the orbital service without a database connection.',
+      );
+    }
     const pool = new Pool({ connectionString });
 
-    // 2. יצירת המתאם של Prisma
     const adapter = new PrismaPg(pool);
 
-    // 3. העברה ל-PrismaClient (זה התיקון לשגיאת __internal)
     super({ adapter });
   }
   async onModuleInit() {

@@ -1,24 +1,15 @@
 import { SatellitePositionGeodetic } from 'src/common/types/satellite';
 import { Coordinates } from 'src/common/types/coordinates';
-import { ReducedSatelliteData } from 'src/common/types/reducedSatelliteData';
+import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 import * as satellite from 'satellite.js';
 import {
   calculateCoverageScore,
   calculateEffectiveRadius,
 } from 'src/common/utils/geo-calculations.utils';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
+import { buildSatrecs } from 'src/common/utils/satellite.utils';
 
-function buildSatrecs(
-  reducedSatelliteData: ReducedSatelliteData[],
-): satellite.SatRec[] {
-  const satrecs: satellite.SatRec[] = [];
-  for (const data of reducedSatelliteData) {
-    try {
-      satrecs.push(satellite.twoline2satrec(data.line1, data.line2));
-    } catch {}
-  }
-  return satrecs;
-}
+
 function calculateSatellitePositionBySatrec(
   satrec: satellite.SatRec,
   date: Date,
@@ -49,7 +40,7 @@ export function timeStepCoverageScore(
   locationCenter: Coordinates,
   locationRadiusKm: number,
   stepMinutes: number = TIME_DEFAULTS.FINE_STEP_MINUTES,
-  reducedSatelliteData: ReducedSatelliteData[],
+  reducedSatelliteData: SatelliteTle[],
 ): Float64Array {
   const satrecs: satellite.SatRec[] = buildSatrecs(reducedSatelliteData);
 
@@ -62,7 +53,7 @@ export function timeStepCoverageScore(
   const currentTime = new Date(startTimestamp);
   let timestamp = startTimestamp;
 
-  for (let i = 0; i < slotCount; i++) {
+  for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
     currentTime.setTime(timestamp);
     let timeWindowScore = 0;
 
@@ -90,7 +81,7 @@ export function timeStepCoverageScore(
 
       timeWindowScore += satelliteScore;
     }
-    scores[i] = timeWindowScore;
+    scores[slotIndex] = timeWindowScore;
     timestamp += stepMs;
   }
 

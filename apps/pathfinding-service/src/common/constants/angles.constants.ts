@@ -1,4 +1,5 @@
 export const ANGLES_DEFAULTS = {
   MINIMUM_VISIBILITY_ANGLE: 25,
   DEGREES_TO_RADIANS: Math.PI / 180,
+  RADIANS_TO_DEGREES: 180 / Math.PI,
 } as const;

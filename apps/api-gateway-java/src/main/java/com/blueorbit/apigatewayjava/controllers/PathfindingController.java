@@ -2,6 +2,7 @@ package com.blueorbit.apigatewayjava.controllers;
 
 
 import com.blueorbit.apigatewayjava.dtos.VisibilityRequest;
+import com.blueorbit.apigatewayjava.dtos.PathfindingRequest;
 import com.blueorbit.apigatewayjava.services.PathfindingGatewayService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +14,14 @@ public class PathfindingController {
     @Autowired
     private PathfindingGatewayService gatewayService;
 
+
     @PostMapping("/visibility")
     public Object checkVisibility(@RequestBody VisibilityRequest request) {
         return gatewayService.calculateCoverage(request);
     }
+    @PostMapping("/optimal-path")
+    public Object calculateRoute(@RequestBody PathfindingRequest request) {
+        return gatewayService.calculatePath(request);
+    }
+
 }
