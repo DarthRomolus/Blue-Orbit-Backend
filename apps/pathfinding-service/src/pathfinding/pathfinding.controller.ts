@@ -30,12 +30,13 @@ export class PathfindingController {
       startState,
       pathfindingRequest.goal,
     );
-
-    return {
+    const response: PathfindingResponseDto = {
+      path: result.path,
       success: result.success,
       nodesExplored: result.nodesExplored,
       totalCost: result.totalCost,
       pathLength: result.path.length,
     };
+    return response;
   }
 }
