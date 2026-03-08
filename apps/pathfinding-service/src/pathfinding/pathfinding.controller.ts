@@ -1,6 +1,5 @@
 import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { pathToGeoJSON } from 'src/common/utils/geo-calculations.utils';
 import { PathfindingService } from './pathfinding.service';
 import { PathfindingRequestDto } from 'src/common/dto/pathfinding-request.dto';
 import { PathfindingResponseDto } from 'src/common/dto/pathfinding-response.dto';
@@ -14,7 +13,9 @@ export class PathfindingController {
   constructor(private readonly pathfindingService: PathfindingService) {}
 
   @MessagePattern(RMQ_PATTERNS.CALCULATE_PATH)
-  public async calculatePath(@Payload() pathfindingRequest: PathfindingRequestDto): Promise<PathfindingResponseDto> {
+  public async calculatePath(
+    @Payload() pathfindingRequest: PathfindingRequestDto,
+  ): Promise<PathfindingResponseDto> {
     this.logger.log('Received calculation request from Gateway via RMQ');
 
     const startState = {
@@ -29,13 +30,13 @@ export class PathfindingController {
       startState,
       pathfindingRequest.goal,
     );
-
-    return {
+    const response: PathfindingResponseDto = {
+      path: result.path,
       success: result.success,
       nodesExplored: result.nodesExplored,
       totalCost: result.totalCost,
       pathLength: result.path.length,
-      geoJson: pathToGeoJSON(result.path),
     };
+    return response;
   }
 }

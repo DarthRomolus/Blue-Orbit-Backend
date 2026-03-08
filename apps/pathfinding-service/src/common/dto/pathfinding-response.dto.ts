@@ -1,8 +1,9 @@
-/** DTO for the pathfinding response sent back to the API Gateway */
+import { SatellitePositionGeodetic } from '../types/satellite';
+
 export class PathfindingResponseDto {
+  path: SatellitePositionGeodetic[];
   success: boolean;
   nodesExplored: number;
   totalCost: number;
   pathLength: number;
-  geoJson: object | null;
 }
