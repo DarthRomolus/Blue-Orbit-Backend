@@ -1,4 +1,5 @@
 import type { State } from '../../pathfinding/graph/state';
+import { SatellitePositionGeodetic } from './satellite';
 
 export type EdgeCostResult = {
   cost: number;
@@ -12,7 +13,7 @@ export type NodeScores = {
 };
 
 export type AstarResult = {
-  path: State[];
+  path: SatellitePositionGeodetic[];
   totalCost: number;
   nodesExplored: number;
   success: boolean;
