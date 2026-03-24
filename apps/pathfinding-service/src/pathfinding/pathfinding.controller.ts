@@ -5,6 +5,7 @@ import { PathfindingRequestDto } from 'src/common/dto/pathfinding-request.dto';
 import { PathfindingResponseDto } from 'src/common/dto/pathfinding-response.dto';
 import { RMQ_PATTERNS } from 'src/common/constants/rmq.constants';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
+import { AstarResult } from 'src/common/types/pathfinding.types';
 
 @Controller('pathfinding')
 export class PathfindingController {
@@ -26,12 +27,14 @@ export class PathfindingController {
       signalQuality: PATHFINDING_DEFAULTS.MAX_SIGNAL_QUALITY,
     };
 
-    const result = await this.pathfindingService.calculateOptimalPath(
-      startState,
-      pathfindingRequest.goal,
-    );
+    const result: AstarResult =
+      await this.pathfindingService.calculateOptimalPath(
+        startState,
+        pathfindingRequest.goal,
+      );
     const response: PathfindingResponseDto = {
       path: result.path,
+      signalQualityTimeline: result.signalQualityTimeline,
       success: result.success,
       nodesExplored: result.nodesExplored,
       totalCost: result.totalCost,
