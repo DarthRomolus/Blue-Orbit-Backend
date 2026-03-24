@@ -2,27 +2,38 @@ import { State } from '../../pathfinding/graph/state';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { calculateDestination } from 'src/common/utils/geo-calculations.utils';
 import { SatellitePositionGeodetic } from '../types/satellite';
+import { SignalQualityPoint } from '../types/pathfinding.types';
 import * as satellite from 'satellite.js';
 import {
   edgeCostFunction,
   propagateSatellitesToEcf,
 } from '../../pathfinding/astar/edge-cost';
 
-export function reconstructPath(goalState: State): SatellitePositionGeodetic[] {
+export function reconstructPath(goalState: State): {
+  path: SatellitePositionGeodetic[];
+  signalQualityTimeline: SignalQualityPoint[];
+} {
   const path: SatellitePositionGeodetic[] = [];
+  const signalQualityTimeline: SignalQualityPoint[] = [];
   let current: State | null = goalState;
 
   while (current !== null) {
-    const position: SatellitePositionGeodetic = {
+    path.push({
       latitude: current.latitude,
       longitude: current.longitude,
       height: current.altitude,
-    };
-    path.push(position);
+    });
+    signalQualityTimeline.push({
+      timestamp: current.time.toISOString(),
+      signalQuality: current.signalQuality,
+    });
     current = current.parentNode;
   }
 
-  return path.reverse();
+  path.reverse();
+  signalQualityTimeline.reverse();
+
+  return { path, signalQualityTimeline };
 }
 
 export function shouldForceMicroSteps(

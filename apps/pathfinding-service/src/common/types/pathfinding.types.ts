@@ -12,8 +12,14 @@ export type NodeScores = {
   signalQuality: number;
 };
 
+export type SignalQualityPoint = {
+  timestamp: string;
+  signalQuality: number;
+};
+
 export type AstarResult = {
   path: SatellitePositionGeodetic[];
+  signalQualityTimeline: SignalQualityPoint[];
   totalCost: number;
   nodesExplored: number;
   success: boolean;

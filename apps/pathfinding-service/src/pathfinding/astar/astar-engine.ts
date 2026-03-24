@@ -64,8 +64,10 @@ export function astarEngine(
     );
 
     if (distanceToGoal <= PATHFINDING_DEFAULTS.GOAL_RADIUS_KM) {
+      const { path, signalQualityTimeline } = reconstructPath(currentState);
       return {
-        path: reconstructPath(currentState),
+        path,
+        signalQualityTimeline,
         totalCost: currentState.costToPoint,
         nodesExplored: iterations,
         success: true,
@@ -126,8 +128,10 @@ export function astarEngine(
     lastState=currentState;
   }
 
+  const { path, signalQualityTimeline } = reconstructPath(lastState);
   return {
-    path: reconstructPath(lastState),
+    path,
+    signalQualityTimeline,
     totalCost: Infinity,
     nodesExplored: iterations,
     success: false,
