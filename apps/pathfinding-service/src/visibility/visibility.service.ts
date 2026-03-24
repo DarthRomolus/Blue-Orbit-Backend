@@ -25,12 +25,15 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(VisibilityService.name);
   private workerPool: Piscina;
   private readonly numOfThreads = VISIBILITY_DEFAULTS.WORKER_POOL_THREAD_COUNT;
-  
+
   constructor(private readonly orbitalClientService: OrbitalClientService) {}
 
   onModuleInit() {
     this.workerPool = new Piscina({
-      filename: resolve(__dirname, VISIBILITY_DEFAULTS.COVERAGE_WORKER_FILENAME),
+      filename: resolve(
+        __dirname,
+        VISIBILITY_DEFAULTS.COVERAGE_WORKER_FILENAME,
+      ),
       maxThreads: this.numOfThreads,
     });
   }
