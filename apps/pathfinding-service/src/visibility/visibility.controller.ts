@@ -2,6 +2,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { VisibilityService } from './visibility.service';
 import { Payload, MessagePattern } from '@nestjs/microservices';
 import { VisibilityRequestDto } from 'src/common/dto/visibility-request.dto';
+import { VisibilityResponseDto } from 'src/common/dto/visibility-response.dto';
 import { RMQ_PATTERNS } from 'src/common/constants/rmq.constants';
 
 @Controller('visibility')
@@ -11,15 +12,22 @@ export class VisibilityController {
   constructor(private readonly visibilityService: VisibilityService) {}
   
   @MessagePattern(RMQ_PATTERNS.CALCULATE_COVERAGE)
-  async getCoverage(@Payload() visibilityRequest: VisibilityRequestDto) {
+  async getCoverage(@Payload() visibilityRequest: VisibilityRequestDto): Promise<VisibilityResponseDto> {
     this.logger.log('Received calculation request from Gateway via RMQ');
 
-    return this.visibilityService.calculateMaxCoverageTimeWindow(
+    const result = await this.visibilityService.calculateMaxCoverageTimeWindow(
       new Date(visibilityRequest.startDate),
       new Date(visibilityRequest.endDate),
       visibilityRequest.locationCenter,
       visibilityRequest.locationRadiusKm,
       visibilityRequest.timeFrameHours,
     );
+
+    return {
+      startTime: result.bestWindow.startTime?.toISOString() ?? null,
+      coverageScore: result.bestWindow.coverageScore,
+      coverageTimeline: result.coverageTimeline,
+    };
   }
 }
+

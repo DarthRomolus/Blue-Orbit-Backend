@@ -1,8 +1,17 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { OrbitalClientService } from 'src/orbital-client/orbital-client.service';
 import { Coordinates } from 'src/common/types/coordinates';
 import { SatelliteTle } from 'src/common/types/reducedSatelliteData';
 import { TimeWindowScore } from 'src/common/types/timeWindowScore';
+import {
+  VisibilityResult,
+  CoverageTimelinePoint,
+} from 'src/common/types/visibility.types';
 import { TIME_DEFAULTS } from 'src/common/constants/time.constants';
 import { VISIBILITY_DEFAULTS } from 'src/common/constants/visibility.constants';
 import Piscina from 'piscina';
@@ -39,12 +48,17 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
     locationCenter: Coordinates,
     locationRadiusKm: number,
     timeFrameHours: number,
-  ): Promise<TimeWindowScore> {
+  ): Promise<VisibilityResult> {
     const stepMs = TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
-    const snappedStart = new Date(Math.ceil(startDate.getTime() / stepMs) * stepMs);
-    const snappedEnd = new Date(Math.floor(endDate.getTime() / stepMs) * stepMs);
+    const snappedStart = new Date(
+      Math.ceil(startDate.getTime() / stepMs) * stepMs,
+    );
+    const snappedEnd = new Date(
+      Math.floor(endDate.getTime() / stepMs) * stepMs,
+    );
 
-    const reducedSatelliteData: SatelliteTle[] = await this.orbitalClientService.fetchTleData();
+    const reducedSatelliteData: SatelliteTle[] =
+      await this.orbitalClientService.fetchTleData();
 
     const coarseEntries = await runCoarseScan(
       this.workerPool,
@@ -52,34 +66,68 @@ export class VisibilityService implements OnModuleInit, OnModuleDestroy {
       snappedEnd,
       locationCenter,
       locationRadiusKm,
-      reducedSatelliteData
+      reducedSatelliteData,
     );
 
     const coarseTimeFrameSlots = Math.floor(
-      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) / TIME_DEFAULTS.COARSE_STEP_MINUTES
+      (timeFrameHours * TIME_DEFAULTS.HOURS_TO_MINUTES) /
+        TIME_DEFAULTS.COARSE_STEP_MINUTES,
     );
 
-    const bestCoarseWindow = findBestSlidingWindow(coarseEntries, coarseTimeFrameSlots);
+    const bestCoarseWindow = findBestSlidingWindow(
+      coarseEntries,
+      coarseTimeFrameSlots,
+    );
 
     if (!bestCoarseWindow.startTime) {
-      return { startTime: null, coverageScore: 0 };
+      return {
+        bestWindow: { startTime: null, coverageScore: 0 },
+        coverageTimeline: [],
+      };
     }
+
+    let bestWindow: TimeWindowScore;
 
     if (timeFrameHours > TIME_DEFAULTS.FINE_TUNING_THRESHOLD_HOURS) {
       this.logger.log('Large window requested. Skipping fine-tuning.');
-      return bestCoarseWindow;
+      bestWindow = bestCoarseWindow;
+    } else {
+      bestWindow = await runFineTuningScan(
+        this.workerPool,
+        bestCoarseWindow.startTime,
+        snappedStart,
+        snappedEnd,
+        timeFrameHours,
+        locationCenter,
+        locationRadiusKm,
+        reducedSatelliteData,
+      );
     }
 
-    return runFineTuningScan(
-      this.workerPool,
-      bestCoarseWindow.startTime,
-      snappedStart,
-      snappedEnd,
-      timeFrameHours,
+    const windowStartMs = bestWindow.startTime!.getTime();
+    const windowEndMs =
+      windowStartMs + timeFrameHours * TIME_DEFAULTS.MS_IN_HOUR;
+
+    const windowScores = (await this.workerPool.run({
+      startDate: new Date(windowStartMs),
+      endDate: new Date(windowEndMs),
       locationCenter,
       locationRadiusKm,
-      reducedSatelliteData
-    );
-  }
+      stepMinutes: TIME_DEFAULTS.FINE_STEP_MINUTES,
+      reducedSatelliteData,
+    })) as Float64Array;
 
+    const fineStepMs =
+      TIME_DEFAULTS.FINE_STEP_MINUTES * TIME_DEFAULTS.MS_IN_MINUTE;
+    const maxScore = Math.max(...windowScores);
+    const coverageTimeline: CoverageTimelinePoint[] = Array.from(
+      windowScores,
+      (coverageScore, i) => ({
+        timestamp: new Date(windowStartMs + i * fineStepMs).toISOString(),
+        coverageScore: maxScore > 0 ? coverageScore / maxScore : 0,
+      }),
+    );
+
+    return { bestWindow, coverageTimeline };
+  }
 }
