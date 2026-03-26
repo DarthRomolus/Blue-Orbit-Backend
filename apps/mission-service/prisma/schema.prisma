@@ -15,7 +15,6 @@ datasource db {
 
 model MissionData{
   id   String   @id @default(cuid())
-  name String @unique
 
   Type  MissionType 
 
@@ -27,11 +26,9 @@ model MissionData{
 
  
   startDate   DateTime
-  endDate     DateTime
+  endDate     DateTime?
 
   radius Float?
-
-  status      MissionStatus @default(DRAFT)
 
   result      Json?
 
@@ -43,10 +40,5 @@ enum MissionType {
   STATIC
   FLIGHT
 }
-enum MissionStatus {
-  DRAFT     
-  PENDING   
-  COMPLETED 
-  FAILED   
-}
+
 
