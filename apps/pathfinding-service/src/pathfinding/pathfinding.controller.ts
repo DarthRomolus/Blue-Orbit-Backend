@@ -6,12 +6,16 @@ import { PathfindingResponseDto } from 'src/common/dto/pathfinding-response.dto'
 import { RMQ_PATTERNS } from 'src/common/constants/rmq.constants';
 import { PATHFINDING_DEFAULTS } from 'src/common/constants/pathfinding.constants';
 import { AstarResult } from 'src/common/types/pathfinding.types';
+import { MissionClientService } from '../mission-client/mission-client.service';
 
 @Controller('pathfinding')
 export class PathfindingController {
   private readonly logger = new Logger(PathfindingController.name);
 
-  constructor(private readonly pathfindingService: PathfindingService) {}
+  constructor(
+    private readonly pathfindingService: PathfindingService,
+    private readonly missionClientService: MissionClientService,
+  ) {}
 
   @MessagePattern(RMQ_PATTERNS.CALCULATE_PATH)
   public async calculatePath(
@@ -40,6 +44,18 @@ export class PathfindingController {
       totalCost: result.totalCost,
       pathLength: result.path.length,
     };
+
+    // Fire off to mission-service
+    await this.missionClientService.sendMissionResult({
+      Type: 'FLIGHT',
+      startLat: pathfindingRequest.startState.latitude,
+      startLon: pathfindingRequest.startState.longitude,
+      endLat: pathfindingRequest.goal.latitude,
+      endLon: pathfindingRequest.goal.longitude,
+      startDate: pathfindingRequest.startState.time,
+      result: response,
+    });
+
     return response;
   }
 }

@@ -1,7 +1,7 @@
-
 export const RMQ_CONSTANTS = {
   PATHFINDING_QUEUE: 'pathfinding_queue',
   ORBITAL_QUEUE: 'orbital_queue',
+  MISSION_QUEUE: 'mission_queue',
   QUEUE_OPTIONS: {
     durable: false,
   },
@@ -12,4 +12,5 @@ export const RMQ_PATTERNS = {
   CALCULATE_COVERAGE: { cmd: 'calculate_coverage' },
   SATELLITE_POSITION: { cmd: 'satellite_position' },
   ALL_SATELLITE_DATA: { cmd: 'all_satellite_data' },
+  SAVE_MISSION_RESULT: { cmd: 'save_mission_result' },
 } as const;
