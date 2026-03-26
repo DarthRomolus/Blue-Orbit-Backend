@@ -12,6 +12,8 @@ public class RabbitMQConfig {
 
     public static final String PATHFINDING_QUEUE = "pathfinding_queue";
     public static final String ORBITAL_QUEUE = "orbital_queue"; // התור של Orbital
+    public static final String MISSION_QUEUE = "mission_queue";
+
     @Bean
     public Queue pathfindingQueue() {
         return new Queue(PATHFINDING_QUEUE, false);
@@ -20,6 +22,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue orbitalQueue() {
         return new Queue(ORBITAL_QUEUE, false);
+    }
+
+    @Bean
+    public Queue missionQueue() {
+        return new Queue(MISSION_QUEUE, false);
     }
 
     @Bean

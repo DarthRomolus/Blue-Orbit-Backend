@@ -1,7 +1,8 @@
 # Microservices Startup Script for Blue Orbit
 $services = @(
     @{ Name = "orbital-service"; Command = "npm run start:dev" },
-    @{ Name = "pathfinding-service"; Command = "npm run start:dev" }
+    @{ Name = "pathfinding-service"; Command = "npm run start:dev" },
+    @{ Name = "mission-service"; Command = "npm run start:dev" }
 )
 
 Write-Host "Starting microservices..." -ForegroundColor Cyan
