@@ -69,7 +69,7 @@ export function calculateHaversineAngle(
   deltaLat: number,
   deltaLon: number,
   lat1: number,
-  lat2: number
+  lat2: number,
 ): number {
   const halfChordLength =
     Math.cos(lat1) *
@@ -78,27 +78,39 @@ export function calculateHaversineAngle(
       Math.sin(deltaLon / 2) +
     Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2);
 
-  return 2 * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength));
+  return (
+    2 * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength))
+  );
 }
 
 export function getGreatCircleDistanceKm(
   satelliteCoverageCenter: Coordinates,
   locationCenter: Coordinates,
 ): number {
-  const lat1 = satelliteCoverageCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
+  const lat1 =
+    satelliteCoverageCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
   const lat2 = locationCenter.latitude * ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
-  
+
   const deltaLatitude = lat2 - lat1;
   const deltaLongitude =
     (locationCenter.longitude - satelliteCoverageCenter.longitude) *
     ANGLES_DEFAULTS.DEGREES_TO_RADIANS;
 
-  const angularDistance = calculateHaversineAngle(deltaLatitude, deltaLongitude, lat1, lat2);
+  const angularDistance = calculateHaversineAngle(
+    deltaLatitude,
+    deltaLongitude,
+    lat1,
+    lat2,
+  );
 
   return VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM * angularDistance;
 }
 
-function calculateCircleIntersectionArea(d: number, r1: number, r2: number): number {
+function calculateCircleIntersectionArea(
+  d: number,
+  r1: number,
+  r2: number,
+): number {
   const r1Sq = r1 * r1;
   const r2Sq = r2 * r2;
 
@@ -107,7 +119,7 @@ function calculateCircleIntersectionArea(d: number, r1: number, r2: number): num
 
   const term = (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2);
   const triangleArea = 0.5 * Math.sqrt(Math.max(0, term));
-  
+
   return r1Sq * angle1 + r2Sq * angle2 - triangleArea;
 }
 
@@ -123,7 +135,7 @@ function calculateCoveragePercentage(
   if (d <= 0 || r1 <= 0 || r2 <= 0) {
     return 0;
   }
-  
+
   const intersectionArea = calculateCircleIntersectionArea(d, r1, r2);
 
   const targetArea = Math.PI * (r1 * r1);
@@ -157,22 +169,35 @@ export function calculateCoverageScore(
   );
 }
 
-function calculateDestinationLatitude(lat1: number, angularDistance: number, brng: number): number {
+function calculateDestinationLatitude(
+  lat1: number,
+  angularDistance: number,
+  brng: number,
+): number {
   return Math.asin(
     Math.sin(lat1) * Math.cos(angularDistance) +
       Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(brng),
   );
 }
 
-function calculateDestinationLongitude(lon1: number, lat1: number, lat2: number, angularDistance: number, brng: number): number {
-  return lon1 +
+function calculateDestinationLongitude(
+  lon1: number,
+  lat1: number,
+  lat2: number,
+  angularDistance: number,
+  brng: number,
+): number {
+  return (
+    lon1 +
     Math.atan2(
       Math.sin(brng) * Math.sin(angularDistance) * Math.cos(lat1),
       Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
-    );
+    )
+  );
 }
 
-function normalizeLongitude(lon: number): number {//explain this function
+function normalizeLongitude(lon: number): number {
+  //TODO:explain this function
   return ((lon + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
 }
 
@@ -198,8 +223,14 @@ export function calculateDestination(
     distanceKm / VISIBILITY_EQUATION_VARIABLES.EARTH_RADIUS_KM;
 
   const lat2 = calculateDestinationLatitude(lat1, angularDistance, brng);
-  
-  let lon2 = calculateDestinationLongitude(lon1, lat1, lat2, angularDistance, brng);
+
+  let lon2 = calculateDestinationLongitude(
+    lon1,
+    lat1,
+    lat2,
+    angularDistance,
+    brng,
+  );
 
   lon2 = normalizeLongitude(lon2);
 
