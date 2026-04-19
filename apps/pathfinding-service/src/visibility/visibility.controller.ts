@@ -35,7 +35,6 @@ export class VisibilityController {
       coverageTimeline: result.coverageTimeline,
     };
 
-    // Fire off to mission-service
     await this.missionClientService.sendMissionResult({
       Type: 'STATIC',
       startLat: visibilityRequest.locationCenter.latitude,
