@@ -15,7 +15,7 @@ export const PATHFINDING_DEFAULTS = {
   W_CONN: 0.55,
 
   /** Sigmoid midpoint: elevation angle (degrees) where signal quality = 0.5 */
-  SIGMOID_MIDPOINT_DEG: 50,
+  SIGMOID_MIDPOINT_DEG: 35,
 
   /** Sigmoid steepness parameter */
   SIGMOID_STEEPNESS: 0.5,
