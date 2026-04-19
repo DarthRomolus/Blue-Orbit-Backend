@@ -45,7 +45,6 @@ export class PathfindingController {
       pathLength: result.path.length,
     };
 
-    // Fire off to mission-service
     await this.missionClientService.sendMissionResult({
       Type: 'FLIGHT',
       startLat: pathfindingRequest.startState.latitude,
