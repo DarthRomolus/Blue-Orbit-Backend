@@ -1,10 +1,129 @@
+# ============================================================
+#  Blue Orbit Backend — Full Stack Docker Compose
+#
+#  Your friend just needs to run:
+#    docker compose up --build
+#
+#  That's it. No separate "docker build" needed.
+#  docker compose handles building + starting everything.
+# ============================================================
+
 services:
+
+  # ---- Infrastructure ----
+
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: orbital_rabbitmq
+    container_name: blue_orbit_rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672"       # AMQP protocol (services connect here)
+      - "15672:15672"     # Management UI: http://localhost:15672
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: blue_orbit_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- NestJS Microservices (built from root Dockerfile) ----
+
+  orbital-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: orbital-service
+    container_name: blue_orbit_orbital
+    ports:
+      - "3000:3000"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      ORBITAL_DATABASE_URL: postgresql://postgres:123456@postgres:5432/orbital_db?schema=public
+      PORT: "3000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  pathfinding-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: pathfinding-service
+    container_name: blue_orbit_pathfinding
+    ports:
+      - "3001:3001"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PORT: "3001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mission-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: mission-service
+    container_name: blue_orbit_mission
+    ports:
+      - "3004:3004"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      MISSION_DATABASE_URL: postgresql://postgres:123456@postgres:5432/mission_db?schema=public
+      PORT: "3004"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---- Java API Gateway (built from its own Dockerfile) ----
+
+  api-gateway:
+    build:
+      context: ./apps/api-gateway-java
+      dockerfile: Dockerfile
+    container_name: blue_orbit_gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:
+  postgres_data:

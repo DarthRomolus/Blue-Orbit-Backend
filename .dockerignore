@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.gitignore
+.idea
+.turbo
+.env
+.env.*
+*.md
+coverage
+npm-debug.log*
+# Java build output (built inside Docker instead)
+apps/api-gateway-java/target
